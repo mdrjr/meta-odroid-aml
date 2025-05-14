@@ -1,0 +1,25 @@
+From a7691645441f98e7d3cf051fb068ef815f7e4caa Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Date: Tue, 22 Apr 2025 19:33:53 -0300
+Subject: [PATCH] ODROID-C5: fix build with GCC-14
+
+---
+ drivers/media/di_multi/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/di_multi/Makefile b/drivers/media/di_multi/Makefile
+index 171674bc9..e955895eb 100644
+--- a/drivers/media/di_multi/Makefile
++++ b/drivers/media/di_multi/Makefile
+@@ -8,7 +8,7 @@
+ #ccflags-y += -DDEBUG
+ #endif
+ 
+-ccflags-y += -I.
++ccflags-y += -I. -Wno-enum-int-mismatch
+ 
+ DI_CHANNEL_NUM_1?=0
+ DI_CHANNEL_NUM_2?=0
+-- 
+2.43.0
+

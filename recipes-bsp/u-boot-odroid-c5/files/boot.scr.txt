@@ -1,0 +1,20 @@
+setenv bootargs " ${bootargs} init=/sbin/init root=/dev/mmcblk0p3 rootwait rw"
+setenv bootlabel "Yocto"
+# Default TTY console
+setenv bootargs "${bootargs} console=ttyS0,921600 quiet"
+
+setenv fdtfile "s7d_s905x5m_odroidc5.dtb"
+
+setenv partition 2
+
+# eMMC boot!
+setenv devtype mmc
+setenv devnum 1
+
+# Load DTB
+load ${devtype} ${devnum}:${partition} ${dtb_mem_addr} s7d_s905x5m_odroidc5.dtb
+
+# Load Kernel
+load ${devtype} ${devnum}:${partition} ${loadaddr_kernel} Image
+booti ${loadaddr_kernel} - ${dtb_mem_addr}
+

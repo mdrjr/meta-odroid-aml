@@ -1,0 +1,19 @@
+#!/bin/sh
+
+WESTON_USER=$1
+ifup eth0
+NTP="1"
+NTP_SERVER="time.google.com"
+URL="http://claro.mdrjr.me/video/index.html"
+
+if test -e /boot/autostart.cfg; then
+    . /boot/autostart.cfg
+fi
+
+if [ "$NTP" -eq "1" ]; then
+    /usr/sbin/ntpdate $NTP_SERVER
+fi
+
+sleep 1
+
+/usr/bin/chromium --noerrdialogs --no-first-run --kiosk --start-fullscreen $URL

@@ -1,0 +1,1 @@
+SSTATE_ALLOW_OVERLAP_FILES:append = " ${COMPONENTS_DIR}/${PACKAGE_ARCH}/glibc-stash-locale"
