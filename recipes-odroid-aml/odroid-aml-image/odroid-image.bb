@@ -22,6 +22,11 @@ IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 IMAGE_INSTALL:append = " glmark2"
 PACKAGECONFIG:pn-glmark2 = "wayland-gles2 drm-gles2"
 
+# For WiFi
+IMAGE_INSTALL:append = " \
+	wpa-supplicant \
+"
+
 # Misc
 IMAGE_INSTALL:append = " \
         odroid-c5-firmware \
