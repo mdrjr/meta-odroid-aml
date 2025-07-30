@@ -4,7 +4,7 @@ inherit auto-patch
 
 inherit local-git
 
-SRCREV = "601391d13b7a9e1a55f43e423af04662278f020a"
+SRCREV = "72460c37258e2a19155949023af6081078a049db"
 
 SRC_URI = " \
     git://github.com/hardkernel/linux.git;protocol=https;nobranch=1;branch=odroids7d-5.15.y; \
