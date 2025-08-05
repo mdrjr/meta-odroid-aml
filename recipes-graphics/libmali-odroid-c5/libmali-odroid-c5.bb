@@ -44,7 +44,7 @@ python __anonymous() {
 }
 
 do_install() {
-    tar xf ${S}/tarball.tar.bin -C ${D}
+    tar xf ${WORKDIR}/tarball.tar.bin -C ${D}
 }
 
 ## Package List

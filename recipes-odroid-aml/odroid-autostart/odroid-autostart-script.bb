@@ -9,7 +9,7 @@ S = "${WORKDIR}/sources"
 UNPACKDIR = "${S}"
 
 do_install:append() {
-    install -Dm755 ${UNPACKDIR}/chromium-autostart ${D}${bindir}/chromium-autostart
+    install -Dm755 ${WORKDIR}/chromium-autostart ${D}${bindir}/chromium-autostart
 }
 
 FILES:${PN} += " ${bindir}/chromium-autostart "

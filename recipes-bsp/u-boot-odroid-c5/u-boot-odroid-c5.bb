@@ -9,7 +9,7 @@ SRC_URI = "file://u-boot.bin.signed \
           file://boot.scr.txt"
 
 do_compile() {
-    mkimage -A arm64 -T script -C none -n "BootScript" -d "${UNPACKDIR}/boot.scr.txt" boot.scr
+    mkimage -A arm64 -T script -C none -n "BootScript" -d "${WORKDIR}/boot.scr.txt" ${WORKDIR}/boot.scr
 }
 
 inherit kernel-arch deploy nopackages
@@ -19,8 +19,8 @@ UNPACKDIR = "${S}"
 
 do_deploy() { 
     install -d ${DEPLOYDIR}
-    install -m 0644 u-boot.bin.signed "${DEPLOYDIR}"/u-boot.bin.signed
-    install -m 0644 boot.scr "${DEPLOYDIR}"/boot.scr
+    install -m 0644 ${WORKDIR}/u-boot.bin.signed "${DEPLOYDIR}"/u-boot.bin.signed
+    install -m 0644 ${WORKDIR}/boot.scr "${DEPLOYDIR}"/boot.scr
 }
 
 addtask do_deploy after do_compile before do_build

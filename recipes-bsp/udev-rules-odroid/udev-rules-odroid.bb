@@ -12,5 +12,5 @@ UNPACKDIR = "${S}"
 
 do_install() {
         install -d ${D}${nonarch_base_libdir}/udev/rules.d
-        install -m 0644 ${UNPACKDIR}/99-odroid.rules ${D}${nonarch_base_libdir}/udev/rules.d/99-odroid.rules
+        install -m 0644 ${WORKDIR}/99-odroid.rules ${D}${nonarch_base_libdir}/udev/rules.d/99-odroid.rules
 }

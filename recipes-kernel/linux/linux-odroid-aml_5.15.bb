@@ -29,7 +29,7 @@ LINUX_VERSION ?= "5.15"
 # Done to avoid forking and patching
 do_patch:append() {
     sed -i '0,/ccflags-y += -I./ s/ccflags-y += -I./ccflags-y += -I. -Wno-enum-int-mismatch/g' ${S}/common_drivers/drivers/media/di_multi/Makefile
-    patch -p0 < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources-unpack/increase-heap-gfx-for-4k-support.fix
+    patch -p0 < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/increase-heap-gfx-for-4k-support.fix
 }
 
 do_copy_dtb() { 

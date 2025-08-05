@@ -11,7 +11,7 @@ inherit kernel-arch deploy nopackages
 
 do_deploy() { 
     install -d ${DEPLOYDIR}
-    install -m 0644 autostart.cfg "${DEPLOYDIR}"/autostart.cfg
+    install -m 0644 ${WORKDIR}/autostart.cfg "${DEPLOYDIR}"/autostart.cfg
 }
 
 addtask do_deploy after do_compile before do_build
