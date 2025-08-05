@@ -8,8 +8,8 @@ setenv fdtfile "s7d_s905x5m_odroidc5.dtb"
 setenv partition 2
 
 # eMMC boot!
-setenv devtype mmc
-setenv devnum 1
+# setenv devtype mmc
+# setenv devnum 1
 
 # Load DTB
 load ${devtype} ${devnum}:${partition} ${dtb_mem_addr} s7d_s905x5m_odroidc5.dtb
