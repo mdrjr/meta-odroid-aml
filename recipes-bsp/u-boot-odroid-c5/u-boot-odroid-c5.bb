@@ -8,14 +8,14 @@ INHIBIT_DEFAULT_DEPS = "1"
 SRC_URI = "file://u-boot.bin.signed \
           file://boot.scr.txt"
 
+S = "${UNPACKDIR}"
+
 do_compile() {
     mkimage -A arm64 -T script -C none -n "BootScript" -d "${UNPACKDIR}/boot.scr.txt" boot.scr
 }
 
 inherit kernel-arch deploy nopackages
 
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
 
 do_deploy() { 
     install -d ${DEPLOYDIR}
