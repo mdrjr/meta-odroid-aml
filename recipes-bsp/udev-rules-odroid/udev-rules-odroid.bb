@@ -7,8 +7,7 @@ SRC_URI = " \
         file://99-odroid.rules \
 "
 
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
+S = "${UNPACKDIR}"
 
 do_install() {
         install -d ${D}${nonarch_base_libdir}/udev/rules.d
