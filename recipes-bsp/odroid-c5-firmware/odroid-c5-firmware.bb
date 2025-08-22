@@ -5,8 +5,7 @@ SRC_URI = "file://aucpu_fw.bin \
     file://video_ucode.bin \
 "
 
-S = "${WORKDIR}/sources" 
-UNPACKDIR = "${S}"
+S = "${UNPACKDIR}" 
 
 do_install:append() { 
     install -d ${D}/lib/firmware/video    
