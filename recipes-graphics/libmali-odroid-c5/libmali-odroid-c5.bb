@@ -5,8 +5,7 @@ LICENSE = "CLOSED"
 SECTION = "libs"
 
 SRC_URI = "file://tarball.tar.bin"
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
+S = "${UNPACKDIR}/sources"
 
 DEPENDS = "coreutils-native libdrm"
 PROVIDES:append = " virtual/egl virtual/libgles1 virtual/libgles2 virtual/libgles3 virtual/libgbm"
@@ -16,7 +15,6 @@ inherit pkgconfig autotools
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
-# do_populate_lic[noexec] = "1"
 
 ASNEEDED = ""
 
@@ -44,7 +42,7 @@ python __anonymous() {
 }
 
 do_install() {
-    tar xf ${S}/tarball.tar.bin -C ${D}
+    tar xf ${UNPACKDIR}/tarball.tar.bin -C ${D}
 }
 
 ## Package List
