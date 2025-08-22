@@ -15,7 +15,7 @@ IMAGE_INSTALL:append = " ncurses-terminfo os-release ifupdown dhcpcd resolvconf 
 IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-conf "
 
 # Chromium
-IMAGE_INSTALL:append = " chromium-ozone-wayland "
+# IMAGE_INSTALL:append = " chromium-ozone-wayland "
 IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 
 # glmark2
