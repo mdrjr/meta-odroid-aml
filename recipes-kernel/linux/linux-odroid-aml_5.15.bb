@@ -13,8 +13,8 @@ SRCREV_cd = "79993cb1aa356ab5ae6e6cd16b8536f2dde5855e"
 
 SRC_URI = " \
 	git://github.com/hardkernel/linux.git;protocol=https;nobranch=1;branch=odroids7d-5.15.y; \
-	git://git.odroid.com/yocto/platform/hardware/amlogic/media_modules;protocol=https;nobranch=1;branch=odroids7d-5.15.y;destsuffix=git/media_modules;name=mm \
-	git://git.odroid.com/yocto/kernel/common_drivers;protocol=https;nobranch=1;branch=odroids7d-5.15.y;destsuffix=git/common_drivers;name=cd \
+	git://github.com/mdrjr/linux.git;protocol=https;nobranch=1;branch=mm_s7d_5.15.y;destsuffix=git/media_modules;name=mm \
+	git://github.com/mdrjr/linux.git;protocol=https;nobranch=1;branch=cd_s7d_5.15.y;destsuffix=git/common_drivers;name=cd \
 	file://0001-add-realtek-wifi-vendor-driver.patch \
 	file://0002-yocto-kernel-defconfig.patch \
 	file://0003-patch-realtek-vendor-driver-to-support-amlogic-kerne.patch \
