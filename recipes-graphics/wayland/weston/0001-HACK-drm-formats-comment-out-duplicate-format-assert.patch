@@ -1,0 +1,24 @@
+From 16715eb50b0e5f7fc36b43f1ae686ceba3b6190f Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Subject: [PATCH] HACK: drm-formats: comment out duplicate format assert
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+ libweston/drm-formats.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libweston/drm-formats.c b/libweston/drm-formats.c
+--- a/libweston/drm-formats.c
++++ b/libweston/drm-formats.c
+@@ -128,7 +128,7 @@ weston_drm_format_array_add_format(struct weston_drm_format_array *formats,
+ 	struct weston_drm_format *fmt;
+
+ 	/* We should not try to add repeated formats to an array. */
+-	assert(!weston_drm_format_array_find_format(formats, format));
++//	assert(!weston_drm_format_array_find_format(formats, format));
+
+ 	fmt = wl_array_add(&formats->arr, sizeof(*fmt));
+ 	if (!fmt) {
+--
+2.20.1
+
