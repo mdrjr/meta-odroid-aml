@@ -3,7 +3,8 @@ inherit deploy
 inherit core-image
 
 IMAGE_FEATURES:append = " package-management serial-autologin-root ssh-server-dropbear weston"
-DEPENDS:append = " u-boot-odroid-c5 odroid-autostart-cfg"
+DEPENDS:append:odroid-c5 = " u-boot-odroid-c5 odroid-autostart-cfg"
+DEPENDS:append:odroid-c4 = " u-boot-odroid-c4"
 IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
 
 DISPLAY_PLATFORM ?= "wayland"
@@ -28,8 +29,8 @@ IMAGE_INSTALL:append = " \
 "
 
 # Misc
+IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-firmware"
 IMAGE_INSTALL:append = " \
-        odroid-c5-firmware \
         udev-rules-odroid \
         kernel-modules \
 	bash \
