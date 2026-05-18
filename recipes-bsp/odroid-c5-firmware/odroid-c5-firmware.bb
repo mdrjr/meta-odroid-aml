@@ -7,10 +7,10 @@ SRC_URI = "file://aucpu_fw.bin \
 
 S = "${UNPACKDIR}" 
 
-do_install:append() { 
-    install -d ${D}/lib/firmware/video    
-    install -Dm660 ${UNPACKDIR}/aucpu_fw.bin ${D}/lib/firmware
-    install -Dm660 ${UNPACKDIR}/video_ucode.bin ${D}/lib/firmware/video
+do_install:append() {
+    install -d ${D}${nonarch_base_libdir}/firmware/video
+    install -Dm660 ${UNPACKDIR}/aucpu_fw.bin ${D}${nonarch_base_libdir}/firmware
+    install -Dm660 ${UNPACKDIR}/video_ucode.bin ${D}${nonarch_base_libdir}/firmware/video
 }
 
 FILES:${PN} += "*"

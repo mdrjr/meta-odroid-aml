@@ -5,7 +5,7 @@ LICENSE = "CLOSED"
 SECTION = "libs"
 
 SRC_URI = "file://tarball.tar.bin"
-S = "${UNPACKDIR}/sources"
+S = "${UNPACKDIR}"
 
 DEPENDS = "coreutils-native libdrm"
 PROVIDES:append = " virtual/egl virtual/libgles1 virtual/libgles2 virtual/libgles3 virtual/libgbm"
