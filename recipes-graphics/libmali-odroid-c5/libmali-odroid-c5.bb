@@ -46,7 +46,7 @@ do_install() {
 }
 
 ## Package List
-INSANE_SKIP:${PN} = "already-stripped ldflags dev-so textrel buildpaths"
+INSANE_SKIP:${PN} = "already-stripped ldflags dev-so textrel buildpaths usrmerge"
 INSANE_SKIP:${PN}-dev = "staticdev"
 
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
