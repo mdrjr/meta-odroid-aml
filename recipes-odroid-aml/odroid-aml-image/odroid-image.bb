@@ -10,7 +10,7 @@ IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
 DISPLAY_PLATFORM ?= "wayland"
 DISTRO_FEATURES:append = " egl opengl wayland gbm"
 
-IMAGE_INSTALL:append = " ncurses-terminfo os-release ifupdown dhcpcd resolvconf dialog"
+IMAGE_INSTALL:append = " ncurses-terminfo os-release ifupdown dhcpcd dialog"
 
 # Audio
 IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-conf "
