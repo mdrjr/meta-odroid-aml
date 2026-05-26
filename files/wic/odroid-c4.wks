@@ -1,9 +1,9 @@
 bootloader --ptable msdos
 
-part --source rawcopy --sourceparams="file=u-boot.bin" --offset 1S
+part --source rawcopy --sourceparams="file=u-boot.bin" --offset 1S --no-table
 
-# fat partition, with 100Mb
 part /boot --source bootimg-partition --ondisk mmcblk --fstype=vfat --label boot --active --align 1024 --fixed-size 100 --use-uuid
 
-# Rootfs partition
+part --source empty --ondisk mmcblk --fstype=ext4 --label reserved --align 1024 --fixed-size 8 --use-uuid
+
 part / --source rootfs --ondisk mmcblk --fstype ext4 --label rootfs --align 4096 --use-uuid --fixed-size=1024
