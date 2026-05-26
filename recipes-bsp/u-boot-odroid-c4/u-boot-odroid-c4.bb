@@ -21,7 +21,7 @@ do_deploy() {
     install -m 0644 ${UNPACKDIR}/boot-logo.bmp.gz "${DEPLOYDIR}/boot-logo.bmp.gz"
 }
 
-addtask do_deploy before do_build
+addtask do_deploy after do_compile before do_build
 
 ALLOW_EMPTY:${PN} = "1"
 COMPATIBLE_MACHINE = "odroid-c4"
