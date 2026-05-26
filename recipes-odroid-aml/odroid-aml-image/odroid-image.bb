@@ -16,7 +16,8 @@ IMAGE_INSTALL:append = " ncurses-terminfo os-release ifupdown dhcpcd dialog"
 IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-conf "
 
 # Chromium
-# IMAGE_INSTALL:append = " chromium-ozone-wayland "
+IMAGE_INSTALL:append:odroid-c4 = " chromium-ozone-wayland"
+# IMAGE_INSTALL:append:odroid-c5 = " chromium-ozone-wayland"
 IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 
 # glmark2
