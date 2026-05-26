@@ -4,6 +4,9 @@ inherit auto-patch
 
 inherit local-git
 
+# odroid-c5 vendor 5.15 kernel headers; other aml boards use oe-core default
+COMPATIBLE_MACHINE = "odroid-c5"
+
 SRCREV = "72460c37258e2a19155949023af6081078a049db"
 
 SRC_URI = " \
