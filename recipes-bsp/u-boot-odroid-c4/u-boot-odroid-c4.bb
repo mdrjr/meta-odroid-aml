@@ -7,7 +7,7 @@ INHIBIT_DEFAULT_DEPS = "1"
 SRC_URI = " \
     file://u-boot.bin \
     file://boot.ini \
-    file://boot-logo.bmp.gz \
+    file://boot-logo.bmp.gz;unpack=false \
 "
 
 S = "${UNPACKDIR}"
