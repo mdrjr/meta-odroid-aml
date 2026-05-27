@@ -31,6 +31,8 @@ IMAGE_INSTALL:append = " \
 
 # Misc
 IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-firmware"
+# Meson VDEC firmware blobs for hw video decode (sm1_vp9_mmu, g12a_h264, gxl_mpeg12)
+IMAGE_INSTALL:append:odroid-c4 = " linux-firmware-amlogic-vdec"
 IMAGE_INSTALL:append = " \
         udev-rules-odroid \
         kernel-modules \
