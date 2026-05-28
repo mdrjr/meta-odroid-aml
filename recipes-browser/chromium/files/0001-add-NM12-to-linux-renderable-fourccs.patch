@@ -1,0 +1,26 @@
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Subject: [PATCH] media: add NM12 (NV12 multi-plane) to Linux renderable fourccs
+
+On Linux + V4L2 + Ozone, GetPreferredRenderableFourccs() in
+gpu_mojo_media_client_linux.cc lists NV12 (single-plane) and P010 as the
+zero-copy renderable formats, but not NM12 (V4L2_PIX_FMT_NV12M, the
+multi-plane variant).
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+ media/mojo/services/gpu_mojo_media_client_linux.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/media/mojo/services/gpu_mojo_media_client_linux.cc
++++ b/media/mojo/services/gpu_mojo_media_client_linux.cc
+@@ -70,6 +70,10 @@
+           renderable_fourccs.emplace_back(Fourcc::MM21);
+         }
+         renderable_fourccs.emplace_back(Fourcc::NV12);
++        // Amlogic meson-vdec exposes ONLY NV12M (multi-plane); without
++        // listing it here, PickDecoderOutputFormat finds no viable
++        // candidate and the V4L2 stateful pipeline silently stalls.
++        renderable_fourccs.emplace_back(Fourcc::NM12);
+       }
+       if (gpu_feature_info.supports_p010_gl_native_pixmap) {
+         renderable_fourccs.emplace_back(Fourcc::P010);

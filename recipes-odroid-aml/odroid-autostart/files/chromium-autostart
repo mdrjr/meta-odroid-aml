@@ -16,4 +16,4 @@ fi
 
 sleep 1
 
-/usr/bin/chromium --noerrdialogs --no-first-run --kiosk --start-fullscreen $URL
+/usr/bin/chromium --noerrdialogs --no-first-run --kiosk --start-fullscreen --autoplay-policy=no-user-gesture-required $URL

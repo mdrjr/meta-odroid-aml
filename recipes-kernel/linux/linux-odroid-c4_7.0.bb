@@ -21,6 +21,8 @@ SRC_URI = " \
     git://github.com/tobetter/rtl8821cu.git;protocol=https;nobranch=1;branch=rtl8821cu-odroid-arm64;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/drivers/net/wireless/realtek/rtl8821cu;name=rtl8821cu \
     git://github.com/tobetter/rtl8192fu-dkms.git;protocol=https;nobranch=1;branch=rtl8192fu-odroid-arm64;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/drivers/net/wireless/realtek/rtl8192fu;name=rtl8192fu \
     file://defconfig \
+    file://0001-codec_h264-bump-capture-dpb-margin.patch \
+    file://0002-meson-vdec-implement-g_selection.patch \
 "
 
 S = "${UNPACKDIR}/${BP}"

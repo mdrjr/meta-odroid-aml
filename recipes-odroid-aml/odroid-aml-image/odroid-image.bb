@@ -2,7 +2,7 @@ inherit image
 inherit deploy
 inherit core-image
 
-IMAGE_FEATURES:append = " package-management serial-autologin-root ssh-server-dropbear weston"
+IMAGE_FEATURES:append = " package-management serial-autologin-root ssh-server-openssh weston"
 DEPENDS:append:odroid-c5 = " u-boot-odroid-c5 odroid-autostart-cfg"
 DEPENDS:append:odroid-c4 = " u-boot-odroid-c4"
 IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
@@ -17,12 +17,11 @@ IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-co
 
 # Chromium
 IMAGE_INSTALL:append:odroid-c4 = " chromium-ozone-wayland"
-# IMAGE_INSTALL:append:odroid-c5 = " chromium-ozone-wayland"
+IMAGE_INSTALL:append:odroid-c5 = " chromium-ozone-wayland"
 IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 
-# glmark2
+# glmark2 (PACKAGECONFIG set in odroid.inc so it reaches the glmark2 recipe)
 IMAGE_INSTALL:append = " glmark2"
-PACKAGECONFIG:pn-glmark2 = "wayland-gles2 drm-gles2"
 
 # For WiFi
 IMAGE_INSTALL:append = " \
@@ -45,7 +44,6 @@ IMAGE_INSTALL:append = " \
         ntp-utils \
         avahi-daemon \
         ca-certificates \
-        dropbear \
         e2fsprogs-e2fsck \
         e2fsprogs-mke2fs \
         e2fsprogs-tune2fs \
