@@ -17,6 +17,11 @@ IMAGE_INSTALL:append = " ncurses-terminfo os-release ifupdown dhcpcd dialog"
 
 # Audio
 IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-conf "
+# HDMI audio DAPM routing (axg-sound-card mux defaults to disconnected)
+IMAGE_INSTALL:append:odroid-c4 = " odroid-c4-audio-routing"
+IMAGE_INSTALL:append:odroid-n2 = " odroid-n2-audio-routing"
+IMAGE_INSTALL:append:odroid-n2plus = " odroid-n2-audio-routing"
+IMAGE_INSTALL:append:odroid-n2l = " odroid-n2-audio-routing"
 
 # Chromium
 IMAGE_INSTALL:append:odroid-c4 = " chromium-ozone-wayland"
