@@ -5,6 +5,9 @@ inherit core-image
 IMAGE_FEATURES:append = " package-management serial-autologin-root ssh-server-openssh weston"
 DEPENDS:append:odroid-c5 = " u-boot-odroid-c5 odroid-autostart-cfg"
 DEPENDS:append:odroid-c4 = " u-boot-odroid-c4"
+DEPENDS:append:odroid-n2 = " u-boot-odroid-n2"
+DEPENDS:append:odroid-n2plus = " u-boot-odroid-n2"
+DEPENDS:append:odroid-n2l = " u-boot-odroid-n2l"
 IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
 
 DISPLAY_PLATFORM ?= "wayland"
@@ -18,6 +21,9 @@ IMAGE_INSTALL:append = " alsa-utils pulseaudio-server alsa-plugins-pulseaudio-co
 # Chromium
 IMAGE_INSTALL:append:odroid-c4 = " chromium-ozone-wayland"
 IMAGE_INSTALL:append:odroid-c5 = " chromium-ozone-wayland"
+IMAGE_INSTALL:append:odroid-n2 = " chromium-ozone-wayland"
+IMAGE_INSTALL:append:odroid-n2plus = " chromium-ozone-wayland"
+IMAGE_INSTALL:append:odroid-n2l = " chromium-ozone-wayland"
 IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 
 # glmark2 (PACKAGECONFIG set in odroid.inc so it reaches the glmark2 recipe)
@@ -32,6 +38,9 @@ IMAGE_INSTALL:append = " \
 IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-firmware"
 # Meson VDEC firmware blobs for hw video decode (sm1_vp9_mmu, g12a_h264, gxl_mpeg12)
 IMAGE_INSTALL:append:odroid-c4 = " linux-firmware-amlogic-vdec"
+IMAGE_INSTALL:append:odroid-n2 = " linux-firmware-amlogic-vdec"
+IMAGE_INSTALL:append:odroid-n2plus = " linux-firmware-amlogic-vdec"
+IMAGE_INSTALL:append:odroid-n2l = " linux-firmware-amlogic-vdec"
 IMAGE_INSTALL:append = " \
         udev-rules-odroid \
         kernel-modules \
