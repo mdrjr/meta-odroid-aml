@@ -6,4 +6,4 @@ part /boot --source bootimg-partition --ondisk mmcblk --fstype=vfat --label boot
 
 part --source empty --ondisk mmcblk --fstype=ext4 --label reserved --align 1024 --fixed-size 8 --use-uuid
 
-part / --source rootfs --ondisk mmcblk --fstype ext4 --label rootfs --align 4096 --use-uuid --fixed-size=1024
+part / --source rootfs --ondisk mmcblk --fstype ext4 --label rootfs --align 4096 --use-uuid --fixed-size=1536
