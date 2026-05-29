@@ -1,0 +1,62 @@
+From 7279c20870b67422808630d0cb2c452efca561bd Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:23:50 +0000
+Subject: [PATCH 05/23] media: meson: vdec: use fuzzy matching for VIFIFO
+ offset timestamps
+
+The VIFIFO offsets reported by decoder firmwares may differ slightly from
+those recorded by the esparser. The previous logic assumed timestamps
+were ordered by offset and matched the last entry before the target,
+which broke when offsets were not strictly monotonic.
+
+Use a +/- 4 KiB delta window when matching offsets to timestamps. Since
+4 KiB is the minimum ESPARSER packet size, there is no risk of false
+matches. Stale entries that go 32 cycles without matching are still
+cleaned up.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ .../staging/media/meson/vdec/vdec_helpers.c   | 27 ++++++++++++-------
+ 1 file changed, 17 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
+index 44d2e1d457e7c..138f40f60593c 100644
+--- a/drivers/staging/media/meson/vdec/vdec_helpers.c
++++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
+@@ -370,19 +370,26 @@ void amvdec_dst_buf_done_offset(struct amvdec_session *sess,
+ 
+ 	/* Look for our vififo offset to get the corresponding timestamp. */
+ 	list_for_each_entry_safe(tmp, n, &sess->timestamps, list) {
+-		if (tmp->offset > offset) {
+-			/*
+-			 * Delete any record that remained unused for 32 match
+-			 * checks
+-			 */
+-			if (tmp->used_count++ >= 32) {
+-				list_del(&tmp->list);
+-				kfree(tmp);
+-			}
++		s64 delta = (s64)offset - tmp->offset;
++
++		/*
++		 * Offsets reported by codecs usually differ slightly,
++		 * so we need some wiggle room.
++		 * 4KiB being the minimum packet size, there is no risk here.
++		 */
++		if (delta > (-1 * (s32)SZ_4K) && delta < SZ_4K) {
++			match = tmp;
+ 			break;
+ 		}
+ 
+-		match = tmp;
++		/*
++		 * Delete any record that remained unused for 32 match
++		 * checks
++		 */
++		if (tmp->used_count++ >= 32) {
++			list_del(&tmp->list);
++			kfree(tmp);
++		}
+ 	}
+ 
+ 	if (!match) {

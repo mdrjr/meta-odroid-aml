@@ -1,0 +1,142 @@
+From a7afac1786b911c14d29a502a815217e05daef88 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:42:12 +0000
+Subject: [PATCH 12/23] media: meson: vdec: move v4l2_m2m_init from open to
+ probe
+
+The driver creates a new v4l2_m2m_dev per file open and destroys it on
+close. This is contrary to how all other V4L2 m2m drivers work - the
+m2m device should be a per-hardware-instance resource created once in
+probe().
+
+Move v4l2_m2m_init() to vdec_probe() and v4l2_m2m_release() to
+vdec_remove(). Store the m2m_dev on struct amvdec_core instead of
+struct amvdec_session. This avoids redundant init/release cycles on
+every open/close and aligns with the standard m2m lifecycle pattern
+used by cedrus, hantro, and other V4L2 decoders.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c | 27 +++++++++++++------------
+ drivers/staging/media/meson/vdec/vdec.h |  4 ++--
+ 2 files changed, 16 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 8b594c3a1c8de..0256b1ea00f1a 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -156,7 +156,7 @@ static void vdec_m2m_job_abort(void *priv)
+ {
+ 	struct amvdec_session *sess = priv;
+ 
+-	v4l2_m2m_job_finish(sess->m2m_dev, sess->m2m_ctx);
++	v4l2_m2m_job_finish(sess->core->m2m_dev, sess->m2m_ctx);
+ }
+ 
+ static const struct v4l2_m2m_ops vdec_m2m_ops = {
+@@ -885,18 +885,11 @@ static int vdec_open(struct file *file)
+ 
+ 	sess->core = core;
+ 
+-	sess->m2m_dev = v4l2_m2m_init(&vdec_m2m_ops);
+-	if (IS_ERR(sess->m2m_dev)) {
+-		dev_err(dev, "Fail to v4l2_m2m_init\n");
+-		ret = PTR_ERR(sess->m2m_dev);
+-		goto err_m2m_release;
+-	}
+-
+-	sess->m2m_ctx = v4l2_m2m_ctx_init(sess->m2m_dev, sess, m2m_queue_init);
++	sess->m2m_ctx = v4l2_m2m_ctx_init(core->m2m_dev, sess, m2m_queue_init);
+ 	if (IS_ERR(sess->m2m_ctx)) {
+ 		dev_err(dev, "Fail to v4l2_m2m_ctx_init\n");
+ 		ret = PTR_ERR(sess->m2m_ctx);
+-		goto err_m2m_release;
++		goto err_free_sess;
+ 	}
+ 
+ 	ret = vdec_init_ctrls(sess);
+@@ -927,8 +920,7 @@ static int vdec_open(struct file *file)
+ 
+ err_m2m_ctx_release:
+ 	v4l2_m2m_ctx_release(sess->m2m_ctx);
+-err_m2m_release:
+-	v4l2_m2m_release(sess->m2m_dev);
++err_free_sess:
+ 	v4l2_ctrl_handler_free(&sess->ctrl_handler);
+ 	kfree(sess);
+ 	return ret;
+@@ -939,7 +931,6 @@ static int vdec_close(struct file *file)
+ 	struct amvdec_session *sess = file_to_amvdec_session(file);
+ 
+ 	v4l2_m2m_ctx_release(sess->m2m_ctx);
+-	v4l2_m2m_release(sess->m2m_dev);
+ 	v4l2_ctrl_handler_free(&sess->ctrl_handler);
+ 	v4l2_fh_del(&sess->fh, file);
+ 	v4l2_fh_exit(&sess->fh);
+@@ -1078,6 +1069,13 @@ static int vdec_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 	}
+ 
++	core->m2m_dev = v4l2_m2m_init(&vdec_m2m_ops);
++	if (IS_ERR(core->m2m_dev)) {
++		dev_err(dev, "Failed to init mem2mem device\n");
++		ret = PTR_ERR(core->m2m_dev);
++		goto err_v4l2_unregister;
++	}
++
+ 	vdev = video_device_alloc();
+ 	if (!vdev) {
+ 		ret = -ENOMEM;
+@@ -1109,6 +1107,8 @@ static int vdec_probe(struct platform_device *pdev)
+ 
+ err_vdev_release:
+ 	video_device_release(vdev);
++	v4l2_m2m_release(core->m2m_dev);
++err_v4l2_unregister:
+ 	v4l2_device_unregister(&core->v4l2_dev);
+ 	return ret;
+ }
+@@ -1118,6 +1118,7 @@ static void vdec_remove(struct platform_device *pdev)
+ 	struct amvdec_core *core = platform_get_drvdata(pdev);
+ 
+ 	video_unregister_device(core->vdev_dec);
++	v4l2_m2m_release(core->m2m_dev);
+ 	v4l2_device_unregister(&core->v4l2_dev);
+ }
+ 
+diff --git a/drivers/staging/media/meson/vdec/vdec.h b/drivers/staging/media/meson/vdec/vdec.h
+index 7a5d8e871d708..f6ca1ba146f35 100644
+--- a/drivers/staging/media/meson/vdec/vdec.h
++++ b/drivers/staging/media/meson/vdec/vdec.h
+@@ -64,6 +64,7 @@ struct amvdec_session;
+  * @esparser_reset: RESET for the PARSER
+  * @vdev_dec: video device for the decoder
+  * @v4l2_dev: v4l2 device
++ * @m2m_dev: v4l2 m2m device
+  * @cur_sess: current decoding session
+  * @lock: video device lock
+  */
+@@ -88,6 +89,7 @@ struct amvdec_core {
+ 
+ 	struct video_device *vdev_dec;
+ 	struct v4l2_device v4l2_dev;
++	struct v4l2_m2m_dev *m2m_dev;
+ 
+ 	struct amvdec_session *cur_sess;
+ 	struct mutex lock;
+@@ -183,7 +185,6 @@ enum amvdec_status {
+  *
+  * @core: reference to the vdec core struct
+  * @fh: v4l2 file handle
+- * @m2m_dev: v4l2 m2m device
+  * @m2m_ctx: v4l2 m2m context
+  * @ctrl_handler: V4L2 control handler
+  * @ctrl_min_buf_capture: V4L2 control V4L2_CID_MIN_BUFFERS_FOR_CAPTURE
+@@ -230,7 +231,6 @@ struct amvdec_session {
+ 	struct amvdec_core *core;
+ 
+ 	struct v4l2_fh fh;
+-	struct v4l2_m2m_dev *m2m_dev;
+ 	struct v4l2_m2m_ctx *m2m_ctx;
+ 	struct v4l2_ctrl_handler ctrl_handler;
+ 	struct v4l2_ctrl *ctrl_min_buf_capture;

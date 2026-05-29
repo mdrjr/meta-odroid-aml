@@ -1,0 +1,57 @@
+From 67d2ce8ef5e196e215a2dc4bde23dc7af5f44c09 Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Date: Thu, 28 May 2026 18:12:31 -0300
+Subject: [PATCH 22/23] media: meson: vdec: add HEVC platform entries for G12A
+ and SM1
+
+Enables HEVC decode on G12A (g12a_hevc_mmu.bin) and SM1 / ODROID-C4
+(sm1_hevc_mmu.bin), which use MMU firmware.
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Change-Id: Ib64c66d6e9b030f39b96cc641edd358dd3dd4b28
+---
+ .../staging/media/meson/vdec/vdec_platform.c  | 24 +++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec_platform.c b/drivers/staging/media/meson/vdec/vdec_platform.c
+index aaaa369db4767..a103626b9ebc7 100644
+--- a/drivers/staging/media/meson/vdec/vdec_platform.c
++++ b/drivers/staging/media/meson/vdec/vdec_platform.c
+@@ -247,6 +247,18 @@ static const struct amvdec_format vdec_formats_g12a[] = {
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED |
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_HEVC,
++		.min_buffers = 4,
++		.max_buffers = 24,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &vdec_hevc_ops,
++		.codec_ops = &codec_hevc_ops,
++		.firmware_path = "meson/vdec/g12a_hevc_mmu.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+ 		.min_buffers = 2,
+@@ -299,6 +311,18 @@ static const struct amvdec_format vdec_formats_sm1[] = {
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED |
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_HEVC,
++		.min_buffers = 4,
++		.max_buffers = 24,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &vdec_hevc_ops,
++		.codec_ops = &codec_hevc_ops,
++		.firmware_path = "meson/vdec/sm1_hevc_mmu.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+ 		.min_buffers = 2,

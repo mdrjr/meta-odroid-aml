@@ -1,0 +1,27 @@
+From 39369b3dc191ee6048f93c141fd3199af808785a Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 17:01:33 +0000
+Subject: [PATCH 19/23] media: meson: vdec: update TODO after MPEG1/2
+ resolution change support
+
+Remove the note about MPEG1/2 not supporting dynamic resolution
+switching, as this has now been implemented.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/TODO | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/TODO b/drivers/staging/media/meson/vdec/TODO
+index 70ae990cf13b4..a88810e06b206 100644
+--- a/drivers/staging/media/meson/vdec/TODO
++++ b/drivers/staging/media/meson/vdec/TODO
+@@ -1,8 +1,2 @@
+ This driver is in staging until the V4L2 documentation about stateful video
+ decoders is finalized, as well as the corresponding compliance tests.
+-
+-It is at the moment not guaranteed to work properly with a userspace
+-stack that follows the latest version of the specification, especially
+-with compression standards like MPEG1/2 where the driver does not support
+-dynamic resolution switching, including the first one used to determine coded
+-resolution.

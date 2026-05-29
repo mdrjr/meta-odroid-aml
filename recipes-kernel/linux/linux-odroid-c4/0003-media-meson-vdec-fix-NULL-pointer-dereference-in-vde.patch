@@ -1,0 +1,36 @@
+From 99318df948037abcb4b6572363a70038ca311e5b Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:23:05 +0000
+Subject: [PATCH 03/23] media: meson: vdec: fix NULL pointer dereference in
+ vdec_try_fmt_common
+
+When VIDIOC_TRY_FMT is called with an unsupported pixel format on the
+OUTPUT queue, vdec_try_fmt_common() falls back to V4L2_PIX_FMT_MPEG2.
+If the platform format table does not contain MPEG2, find_format()
+returns NULL and the subsequent dereference of fmt_out->max_width
+crashes.
+
+Fall back to the first entry in the platform's format array instead
+of hardcoding V4L2_PIX_FMT_MPEG2.
+
+Fixes: 876f123b6595 ("media: meson: vdec: add support for MPEG1 and MPEG2")
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 3a5e4ebe0b34c..91247810a1b93 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -504,8 +504,8 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+ 		fmt_out = find_format(fmts, size, pixmp->pixelformat);
+ 		if (!fmt_out) {
+-			pixmp->pixelformat = V4L2_PIX_FMT_MPEG2;
+-			fmt_out = find_format(fmts, size, pixmp->pixelformat);
++			pixmp->pixelformat = fmts[0].pixfmt;
++			fmt_out = &fmts[0];
+ 		}
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:

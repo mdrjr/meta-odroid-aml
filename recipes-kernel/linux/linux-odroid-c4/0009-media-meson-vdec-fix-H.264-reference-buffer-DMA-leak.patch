@@ -1,0 +1,37 @@
+From 13488ce22228c1084290be0917234f8d3c9798a8 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:26:57 +0000
+Subject: [PATCH 09/23] media: meson: vdec: fix H.264 reference buffer DMA leak
+ on resolution change
+
+codec_h264_resume() allocates a DMA buffer for motion vector references
+but never frees any previous allocation. On a mid-stream resolution
+change, resume is called again and the old ref_vaddr/ref_paddr are
+overwritten without being freed, leaking the DMA memory.
+
+Free the previous reference buffer before allocating a new one.
+
+Fixes: 2db3a7bcef41 ("media: meson: vdec: bring up H.264 decoding")
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/codec_h264.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/staging/media/meson/vdec/codec_h264.c b/drivers/staging/media/meson/vdec/codec_h264.c
+index 35ce25871405e..f0f4a76462df5 100644
+--- a/drivers/staging/media/meson/vdec/codec_h264.c
++++ b/drivers/staging/media/meson/vdec/codec_h264.c
+@@ -305,6 +305,13 @@ static void codec_h264_resume(struct amvdec_session *sess)
+ 	mb_height = ALIGN(h264->mb_height, 4);
+ 	mb_total = mb_width * mb_height;
+ 
++	/* Free previous ref buffer if any (resolution change) */
++	if (h264->ref_vaddr) {
++		dma_free_coherent(core->dev, h264->ref_size,
++				  h264->ref_vaddr, h264->ref_paddr);
++		h264->ref_vaddr = NULL;
++	}
++
+ 	h264->ref_size = mb_total * MB_MV_SIZE * h264->max_refs;
+ 	h264->ref_vaddr = dma_alloc_coherent(core->dev, h264->ref_size,
+ 					     &h264->ref_paddr, GFP_KERNEL);

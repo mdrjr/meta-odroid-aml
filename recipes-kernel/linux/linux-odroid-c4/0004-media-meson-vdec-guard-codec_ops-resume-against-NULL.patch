@@ -1,0 +1,49 @@
+From b142cbf108cba6c7a149e918355153638d8a15c3 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:23:30 +0000
+Subject: [PATCH 04/23] media: meson: vdec: guard codec_ops->resume against
+ NULL
+
+The resume callback is optional (only H.264 and VP9 implement it), but
+it is called unconditionally in vdec_start_streaming() and
+amvdec_src_change(). This causes a NULL pointer dereference for codecs
+like MPEG1/2 that do not provide a .resume handler.
+
+Add NULL checks consistent with how codec_ops->drain is already guarded
+elsewhere in the driver.
+
+Fixes: 876f123b6595 ("media: meson: vdec: add support for MPEG1 and MPEG2")
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c         | 3 ++-
+ drivers/staging/media/meson/vdec/vdec_helpers.c | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 91247810a1b93..93f5beaeb51eb 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -302,7 +302,8 @@ static int vdec_start_streaming(struct vb2_queue *q, unsigned int count)
+ 	if (sess->status == STATUS_NEEDS_RESUME &&
+ 	    q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
+ 	    sess->changed_format) {
+-		codec_ops->resume(sess);
++		if (codec_ops->resume)
++			codec_ops->resume(sess);
+ 		sess->status = STATUS_RUNNING;
+ 		return 0;
+ 	}
+diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
+index f02c21d5a9c18..44d2e1d457e7c 100644
+--- a/drivers/staging/media/meson/vdec/vdec_helpers.c
++++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
+@@ -456,7 +456,8 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
+ 	    sess->width == width &&
+ 	    sess->height == height &&
+ 	    dpb_size <= sess->num_dst_bufs) {
+-		sess->fmt_out->codec_ops->resume(sess);
++		if (sess->fmt_out->codec_ops->resume)
++			sess->fmt_out->codec_ops->resume(sess);
+ 		return;
+ 	}
+ 

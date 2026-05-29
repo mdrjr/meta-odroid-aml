@@ -1,0 +1,49 @@
+From b55cbfa9f28823d562f060aa975c3b7be8f1037e Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 14:02:37 +0000
+Subject: [PATCH 08/23] media: meson: vdec: esparser: fix VP9 buffer
+ backpressure for initial parsing
+
+The esparser subtracts 3 from num_dst_bufs (u32) to reserve capture
+buffers for VP9 reference frames. When fewer than 3 capture buffers
+are available this wraps to a huge value.
+
+Before the capture queue is configured, there are zero capture buffers
+but VP9 still needs source data queued so the firmware can parse
+headers and trigger a source_change event. Restructure the check to
+separate the VIFIFO space check (always applied) from the buffer
+backpressure check (only applied when enough capture buffers exist).
+This avoids the unsigned underflow while preserving source data flow
+during initial header parsing.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/esparser.c | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/esparser.c b/drivers/staging/media/meson/vdec/esparser.c
+index baf0dba3c418c..edfe319b8fa10 100644
+--- a/drivers/staging/media/meson/vdec/esparser.c
++++ b/drivers/staging/media/meson/vdec/esparser.c
+@@ -314,10 +314,18 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 			num_dst_bufs = codec_ops->num_pending_bufs(sess);
+ 
+ 		num_dst_bufs += v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
+-		num_dst_bufs -= 3;
+ 
+-		if (esparser_vififo_get_free_space(sess) < payload_size ||
+-		    atomic_read(&sess->esparser_queued_bufs) >= num_dst_bufs)
++		if (esparser_vififo_get_free_space(sess) < payload_size)
++			return -EAGAIN;
++
++		/*
++		 * Reserve 3 capture buffers for firmware reference frames.
++		 * When fewer than 3 are available (e.g. before capture queue
++		 * is configured for initial header parsing), skip the
++		 * backpressure check to allow source data through.
++		 */
++		if (num_dst_bufs > 3 &&
++		    atomic_read(&sess->esparser_queued_bufs) >= num_dst_bufs - 3)
+ 			return -EAGAIN;
+ 	} else if (esparser_vififo_get_free_space(sess) < payload_size) {
+ 		return -EAGAIN;

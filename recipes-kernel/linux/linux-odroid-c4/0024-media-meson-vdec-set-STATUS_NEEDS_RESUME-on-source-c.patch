@@ -1,0 +1,19 @@
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Subject: [PATCH] media: meson: vdec: set STATUS_NEEDS_RESUME on source change
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+ drivers/staging/media/meson/vdec/vdec_helpers.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
+--- a/drivers/staging/media/meson/vdec/vdec_helpers.c
++++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
+@@ -498,6 +498,7 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
+
+ 	sess->width = width;
+ 	sess->height = height;
++	sess->status = STATUS_NEEDS_RESUME;
+
+ 	dev_dbg(sess->core->dev, "Res. changed (%ux%u), DPB %u, bitdepth %u\n",
+ 		width, height, dpb_size, bitdepth);

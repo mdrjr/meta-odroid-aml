@@ -1,0 +1,54 @@
+From 9fad801db2421b3b27eede0259d3786a3c56c068 Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Date: Thu, 28 May 2026 19:37:51 -0300
+Subject: [PATCH 23/23] media: meson: vdec: reconcile cherry-picked codec calls
+ with helper signatures
+
+The HEVC codec (FROMLIST) and the MPEG1/2 dynamic-resolution support were
+written against older helper signatures. Adapt their calls to the current
+ones after the chewitt fix series + 10bit handling:
+ - codec_mpeg12: amvdec_src_change() gained a bitdepth arg (pass 8)
+ - codec_hevc: amvdec_dst_buf_done()/_offset() gained a frame-type arg (pass 0)
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Change-Id: Ie680b58dd68d008382fd403d0aa88d4e181b93aa
+---
+ drivers/staging/media/meson/vdec/codec_hevc.c   | 4 ++--
+ drivers/staging/media/meson/vdec/codec_mpeg12.c | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/codec_hevc.c b/drivers/staging/media/meson/vdec/codec_hevc.c
+index b0d8623c3c7d5..fe439770637c6 100644
+--- a/drivers/staging/media/meson/vdec/codec_hevc.c
++++ b/drivers/staging/media/meson/vdec/codec_hevc.c
+@@ -499,7 +499,7 @@ static void codec_hevc_show_frames(struct amvdec_session *sess)
+ 		dev_dbg(sess->core->dev, "DONE frame poc %u; vbuf %u\n",
+ 			tmp->poc, tmp->vbuf->vb2_buf.index);
+ 		amvdec_dst_buf_done_offset(sess, tmp->vbuf, tmp->offset,
+-					   V4L2_FIELD_NONE, false);
++					   V4L2_FIELD_NONE, 0, false);
+ 
+ 		tmp->show = 0;
+ 		hevc->frames_num--;
+@@ -667,7 +667,7 @@ static void codec_hevc_flush_output(struct amvdec_session *sess)
+ 	struct hevc_frame *tmp, *n;
+ 
+ 	while ((tmp = codec_hevc_get_next_ready_frame(hevc))) {
+-		amvdec_dst_buf_done(sess, tmp->vbuf, V4L2_FIELD_NONE);
++		amvdec_dst_buf_done(sess, tmp->vbuf, V4L2_FIELD_NONE, 0);
+ 		tmp->show = 0;
+ 		hevc->frames_num--;
+ 	}
+diff --git a/drivers/staging/media/meson/vdec/codec_mpeg12.c b/drivers/staging/media/meson/vdec/codec_mpeg12.c
+index 2a8d8b3e6e0c2..19857cea258f6 100644
+--- a/drivers/staging/media/meson/vdec/codec_mpeg12.c
++++ b/drivers/staging/media/meson/vdec/codec_mpeg12.c
+@@ -184,7 +184,7 @@ static void codec_mpeg12_src_change(struct amvdec_session *sess)
+ 		return;
+ 
+ 	codec_mpeg12_update_dar(sess);
+-	amvdec_src_change(sess, width, height, 8);
++	amvdec_src_change(sess, width, height, 8, 8);
+ }
+ 
+ static irqreturn_t codec_mpeg12_threaded_isr(struct amvdec_session *sess)

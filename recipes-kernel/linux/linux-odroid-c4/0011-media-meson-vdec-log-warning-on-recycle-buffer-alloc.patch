@@ -1,0 +1,35 @@
+From 229676f369c0c08fac4bfc63824a02297e76d94b Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:27:36 +0000
+Subject: [PATCH 11/23] media: meson: vdec: log warning on recycle buffer
+ allocation failure
+
+When vdec_queue_recycle() cannot allocate memory to track a buffer for
+recycling, it silently returns. The firmware is never told the buffer
+is free, which can cause the decoder to stall with no indication in
+the kernel log.
+
+Add a dev_warn so the failure is visible for debugging.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 66f2dd6bc8e8e..8b594c3a1c8de 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -133,8 +133,11 @@ vdec_queue_recycle(struct amvdec_session *sess, struct vb2_buffer *vb)
+ 	struct amvdec_buffer *new_buf;
+ 
+ 	new_buf = kmalloc_obj(*new_buf);
+-	if (!new_buf)
++	if (!new_buf) {
++		dev_warn(sess->core->dev,
++			 "Failed to allocate recycle buffer\n");
+ 		return;
++	}
+ 	new_buf->vb = vb;
+ 
+ 	mutex_lock(&sess->bufs_recycle_lock);

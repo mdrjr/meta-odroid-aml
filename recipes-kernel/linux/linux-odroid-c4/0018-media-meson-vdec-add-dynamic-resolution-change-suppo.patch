@@ -1,0 +1,405 @@
+From 44e63da201f2d617762a9b9422197810c480d559 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 17:01:25 +0000
+Subject: [PATCH 18/23] media: meson: vdec: add dynamic resolution change
+ support for MPEG1/2
+
+The MPEG1/2 codec lacked dynamic resolution support, including the
+initial resolution detection required by the V4L2 stateful decoder
+specification.
+
+Add resolution detection by reading MREG_PIC_WIDTH and MREG_PIC_HEIGHT
+from firmware registers when the first decoded frame arrives during
+STATUS_INIT. This triggers the SOURCE_CHANGE event flow. Resolution
+is only read during STATUS_INIT because amvdec_set_canvases() writes
+canvas entries to consecutive AV_SCRATCH registers starting at
+AV_SCRATCH_0, and slots 6-7 overlap with MREG_PIC_WIDTH (AV_SCRATCH_6)
+and MREG_PIC_HEIGHT (AV_SCRATCH_7). Reduce buffer count from 8 to 6
+to avoid this register conflict.
+
+Unlike H.264 whose firmware explicitly pauses for resolution detection,
+the MPEG1/2 firmware begins decoding immediately. Canvases must be
+registered in codec_mpeg12_start() with the initial resolution so the
+firmware has valid output buffers from the start. When the actual
+stream resolution is detected, amvdec_src_change() triggers capture
+queue reconfiguration and codec_mpeg12_resume() re-registers canvases
+with the correct dimensions.
+
+Frames that arrive before the decoder is running (during source change
+negotiation, or before a sequence header is parsed in a broadcast
+stream) are acknowledged and their firmware buffers recycled via
+MREG_BUFFERIN so the decoder does not stall waiting for output buffers.
+
+Set V4L2_FMT_FLAG_DYN_RESOLUTION on all MPEG1/2 platform format
+entries to advertise the capability.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ .../staging/media/meson/vdec/codec_mpeg12.c   | 85 +++++++++++++++++--
+ .../staging/media/meson/vdec/vdec_platform.c  | 84 ++++++++++--------
+ 2 files changed, 128 insertions(+), 41 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/codec_mpeg12.c b/drivers/staging/media/meson/vdec/codec_mpeg12.c
+index 9c1079d60e094..2a8d8b3e6e0c2 100644
+--- a/drivers/staging/media/meson/vdec/codec_mpeg12.c
++++ b/drivers/staging/media/meson/vdec/codec_mpeg12.c
+@@ -84,8 +84,15 @@ static int codec_mpeg12_start(struct amvdec_session *sess)
+ 		goto free_mpeg12;
+ 	}
+ 
++	/*
++	 * Configure canvases with the initial resolution so the firmware
++	 * has valid output buffers from the start. Unlike H.264, the
++	 * MPEG1/2 firmware begins decoding immediately without pausing
++	 * for resolution detection. Canvases are reconfigured in
++	 * resume() if the actual stream resolution differs.
++	 */
+ 	ret = amvdec_set_canvases(sess, (u32[]){ AV_SCRATCH_0, 0 },
+-					(u32[]){ 8, 0 });
++					(u32[]){ 6, 0 });
+ 	if (ret)
+ 		goto free_workspace;
+ 
+@@ -104,7 +111,6 @@ static int codec_mpeg12_start(struct amvdec_session *sess)
+ 	amvdec_write_dos(core, MREG_FATAL_ERROR, 0);
+ 	amvdec_write_dos(core, MREG_WAIT_BUFFER, 0);
+ 
+-	sess->keyframe_found = 1;
+ 	sess->priv = mpeg12;
+ 
+ 	return 0;
+@@ -114,10 +120,24 @@ static int codec_mpeg12_start(struct amvdec_session *sess)
+ 			  mpeg12->workspace_paddr);
+ free_mpeg12:
+ 	kfree(mpeg12);
+-
+ 	return ret;
+ }
+ 
++static void codec_mpeg12_resume(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++
++	/*
++	 * Canvas entries are written to consecutive AV_SCRATCH registers
++	 * starting at AV_SCRATCH_0. Limit to 6 entries so we do not
++	 * overwrite AV_SCRATCH_6 (MREG_PIC_WIDTH) and AV_SCRATCH_7
++	 * (MREG_PIC_HEIGHT) which the firmware uses to report resolution.
++	 */
++	amvdec_set_canvases(sess, (u32[]){ AV_SCRATCH_0, 0 },
++				  (u32[]){ 6, 0 });
++	amvdec_write_dos(core, MREG_CMD, (sess->width << 16) | sess->height);
++}
++
+ static int codec_mpeg12_stop(struct amvdec_session *sess)
+ {
+ 	struct codec_mpeg12 *mpeg12 = sess->priv;
+@@ -154,6 +174,19 @@ static void codec_mpeg12_update_dar(struct amvdec_session *sess)
+ 	}
+ }
+ 
++static void codec_mpeg12_src_change(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	u32 width = amvdec_read_dos(core, MREG_PIC_WIDTH);
++	u32 height = amvdec_read_dos(core, MREG_PIC_HEIGHT);
++
++	if (!width || !height)
++		return;
++
++	codec_mpeg12_update_dar(sess);
++	amvdec_src_change(sess, width, height, 8);
++}
++
+ static irqreturn_t codec_mpeg12_threaded_isr(struct amvdec_session *sess)
+ {
+ 	struct amvdec_core *core = sess->core;
+@@ -165,6 +198,8 @@ static irqreturn_t codec_mpeg12_threaded_isr(struct amvdec_session *sess)
+ 	u32 pic_type;
+ 	u32 type = 0;
+ 	u32 offset;
++	u32 width;
++	u32 height;
+ 
+ 	amvdec_write_dos(core, ASSIST_MBOX1_CLR_REG, 1);
+ 	reg = amvdec_read_dos(core, MREG_FATAL_ERROR);
+@@ -186,6 +221,37 @@ static irqreturn_t codec_mpeg12_threaded_isr(struct amvdec_session *sess)
+ 	if ((reg & GENMASK(23, 17)) == GENMASK(23, 17))
+ 		goto end;
+ 
++	buffer_index = ((reg & 0xf) - 1) & 7;
++
++	/*
++	 * When the decoder has not yet started (STATUS_INIT), read the
++	 * firmware-reported resolution to trigger the initial source
++	 * change event.  We can only read MREG_PIC_WIDTH/HEIGHT here
++	 * because after resume, amvdec_set_canvases() writes canvas
++	 * entries into the same AV_SCRATCH register range, overwriting
++	 * those firmware registers.
++	 *
++	 * For broadcast streams the sequence header may not be in the
++	 * first packets, so width/height may be zero initially — just
++	 * recycle the buffer and let the firmware keep parsing.
++	 */
++	if (sess->status == STATUS_INIT) {
++		width = amvdec_read_dos(core, MREG_PIC_WIDTH);
++		height = amvdec_read_dos(core, MREG_PIC_HEIGHT);
++		if (width && height)
++			codec_mpeg12_src_change(sess);
++		goto recycle;
++	}
++
++	/*
++	 * Frames arriving before the capture queue is running (e.g.
++	 * between source change and userspace configuring capture)
++	 * cannot be delivered. Recycle the firmware buffer so the
++	 * decoder does not stall waiting for output buffers.
++	 */
++	if (sess->status != STATUS_RUNNING)
++		goto recycle;
++
+ 	pic_info = amvdec_read_dos(core, MREG_PIC_INFO);
+ 	is_progressive = pic_info & PICINFO_PROG;
+ 
+@@ -203,10 +269,18 @@ static irqreturn_t codec_mpeg12_threaded_isr(struct amvdec_session *sess)
+ 		type = 3;
+ 
+ 	codec_mpeg12_update_dar(sess);
+-	buffer_index = ((reg & 0xf) - 1) & 7;
+ 	offset = amvdec_read_dos(core, MREG_FRAME_OFFSET);
+ 	amvdec_dst_buf_done_idx(sess, buffer_index, offset, field, type);
+-
++	goto end;
++
++recycle:
++	/*
++	 * Return this buffer to the firmware so it can keep decoding.
++	 * MREG_BUFFERIN accepts one index at a time; if it is busy the
++	 * firmware will reclaim the buffer via MREG_WAIT_BUFFER later.
++	 */
++	if (codec_mpeg12_can_recycle(core))
++		codec_mpeg12_recycle(core, buffer_index);
+ end:
+ 	amvdec_write_dos(core, MREG_BUFFEROUT, 0);
+ 	return IRQ_HANDLED;
+@@ -224,5 +298,6 @@ struct amvdec_codec_ops codec_mpeg12_ops = {
+ 	.threaded_isr = codec_mpeg12_threaded_isr,
+ 	.can_recycle = codec_mpeg12_can_recycle,
+ 	.recycle = codec_mpeg12_recycle,
++	.resume = codec_mpeg12_resume,
+ 	.eos_sequence = codec_mpeg12_eos_sequence,
+ };
+diff --git a/drivers/staging/media/meson/vdec/vdec_platform.c b/drivers/staging/media/meson/vdec/vdec_platform.c
+index 66bb307db85a4..9edc4259a3625 100644
+--- a/drivers/staging/media/meson/vdec/vdec_platform.c
++++ b/drivers/staging/media/meson/vdec/vdec_platform.c
+@@ -28,26 +28,28 @@ static const struct amvdec_format vdec_formats_gxbb[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 
+@@ -78,26 +80,28 @@ static const struct amvdec_format vdec_formats_gxl[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 
+@@ -116,26 +120,28 @@ static const struct amvdec_format vdec_formats_gxlx[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 
+@@ -166,26 +172,28 @@ static const struct amvdec_format vdec_formats_gxm[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 
+@@ -216,26 +224,28 @@ static const struct amvdec_format vdec_formats_g12a[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 
+@@ -266,26 +276,28 @@ static const struct amvdec_format vdec_formats_sm1[] = {
+ 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG1,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	}, {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2,
+-		.min_buffers = 8,
+-		.max_buffers = 8,
++		.min_buffers = 6,
++		.max_buffers = 6,
+ 		.max_width = 1920,
+ 		.max_height = 1080,
+ 		.vdec_ops = &vdec_1_ops,
+ 		.codec_ops = &codec_mpeg12_ops,
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+-		.flags = V4L2_FMT_FLAG_COMPRESSED,
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
+ 	},
+ };
+ 

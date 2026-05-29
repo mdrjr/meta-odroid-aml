@@ -1,0 +1,33 @@
+From 2d69582790fada491ea4ef8ef7d7a646f08ada71 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:43:30 +0000
+Subject: [PATCH 14/23] media: meson: vdec: reject S_FMT when queue is busy
+
+vdec_s_fmt() does not check whether buffers have already been allocated
+on the target queue before changing the format. This violates the V4L2
+specification which requires -EBUSY when buffers are allocated.
+
+Add a vb2_is_busy() check at the start of vdec_s_fmt() consistent with
+how other V4L2 m2m decoders handle this.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 0256b1ea00f1a..3ddb959d9eda3 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -613,6 +613,11 @@ static int vdec_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
+ 	struct v4l2_pix_format_mplane orig_pixmp;
+ 	struct v4l2_format format;
+ 	u32 pixfmt_out = 0, pixfmt_cap = 0;
++	struct vb2_queue *vq;
++
++	vq = v4l2_m2m_get_vq(sess->m2m_ctx, f->type);
++	if (vb2_is_busy(vq))
++		return -EBUSY;
+ 
+ 	orig_pixmp = *pixmp;
+ 

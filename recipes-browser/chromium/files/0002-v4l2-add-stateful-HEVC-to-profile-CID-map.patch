@@ -1,0 +1,22 @@
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Subject: [PATCH] media: v4l2: add V4L2_PIX_FMT_HEVC to codec/profile CID map
+
+The stateful HEVC pixfmt was missing from kV4L2CodecPixFmtToProfileCID
+(only the stateless V4L2_PIX_FMT_HEVC_SLICE was listed), so
+EnumerateSupportedProfilesForV4L2Codec returned empty for drivers like
+Amlogic meson-vdec that expose stateful V4L2_PIX_FMT_HEVC. The renderer
+SupplementalDecoderVideoProfileCache was never populated with HEVCMain
+and FFmpegDemuxer rejected every HEVC stream as unsupported.
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+--- a/media/gpu/v4l2/v4l2_utils.cc
++++ b/media/gpu/v4l2/v4l2_utils.cc
+@@ -332,6 +332,7 @@
+         {V4L2_PIX_FMT_H264, V4L2_CID_MPEG_VIDEO_H264_PROFILE},
+         {V4L2_PIX_FMT_H264_SLICE, V4L2_CID_MPEG_VIDEO_H264_PROFILE},
+ #if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
++        {V4L2_PIX_FMT_HEVC, V4L2_CID_MPEG_VIDEO_HEVC_PROFILE},
+         {V4L2_PIX_FMT_HEVC_SLICE, V4L2_CID_MPEG_VIDEO_HEVC_PROFILE},
+ #endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
+         {V4L2_PIX_FMT_VP8, V4L2_CID_MPEG_VIDEO_VP8_PROFILE},

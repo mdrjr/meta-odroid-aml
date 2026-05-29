@@ -1,0 +1,48 @@
+From c9405060e828a2de3fc0d2066c07dcc1e149f47b Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 31 Mar 2026 07:26:21 +0000
+Subject: [PATCH 07/23] media: meson: vdec: check kthread_run return value in
+ start_streaming
+
+kthread_run() can fail and return an ERR_PTR. The return value is stored
+in sess->recycle_thread without being checked. A subsequent
+kthread_stop() call in vdec_stop_streaming() would then dereference the
+error pointer, causing a kernel crash.
+
+Check the return value, clean up via the poweroff path, and fail
+start_streaming cleanly on error.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/staging/media/meson/vdec/vdec.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 93f5beaeb51eb..66f2dd6bc8e8e 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -338,15 +338,23 @@ static int vdec_start_streaming(struct vb2_queue *q, unsigned int count)
+ 
+ 	sess->sequence_cap = 0;
+ 	sess->sequence_out = 0;
+-	if (vdec_codec_needs_recycle(sess))
++	if (vdec_codec_needs_recycle(sess)) {
+ 		sess->recycle_thread = kthread_run(vdec_recycle_thread, sess,
+ 						   "vdec_recycle");
++		if (IS_ERR(sess->recycle_thread)) {
++			ret = PTR_ERR(sess->recycle_thread);
++			sess->recycle_thread = NULL;
++			goto poweroff;
++		}
++	}
+ 
+ 	sess->status = STATUS_INIT;
+ 	core->cur_sess = sess;
+ 	schedule_work(&sess->esparser_queue_work);
+ 	return 0;
+ 
++poweroff:
++	vdec_poweroff(sess);
+ vififo_free:
+ 	dma_free_coherent(sess->core->dev, sess->vififo_size,
+ 			  sess->vififo_vaddr, sess->vififo_paddr);
