@@ -1,0 +1,13 @@
+[Unit]
+Description=zram swap device (set up before the UI starts)
+After=local-fs.target
+Before=weston.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/odroid-zram.sh
+ExecStop=/bin/sh -c 'swapoff /dev/zram0 || true'
+
+[Install]
+WantedBy=multi-user.target
