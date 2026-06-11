@@ -1,4 +1,4 @@
-SUMMARY = "ODROID-N2 / N2-Plus U-Boot Pre-Built Binary and Boot Files"
+SUMMARY = "ODROID-N2 / N2-Plus / N2L U-Boot Pre-Built Binary and Boot Files"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171dd6425610833a22dbe6"
 
@@ -24,4 +24,4 @@ do_deploy() {
 addtask do_deploy after do_compile before do_build
 
 ALLOW_EMPTY:${PN} = "1"
-COMPATIBLE_MACHINE = "odroid-(n2|n2plus)"
+COMPATIBLE_MACHINE = "odroid-(n2|n2plus|n2l)"

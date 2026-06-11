@@ -7,7 +7,7 @@ DEPENDS:append:odroid-c5 = " u-boot-odroid-c5 odroid-autostart-cfg"
 DEPENDS:append:odroid-c4 = " u-boot-odroid-c4"
 DEPENDS:append:odroid-n2 = " u-boot-odroid-n2"
 DEPENDS:append:odroid-n2plus = " u-boot-odroid-n2"
-DEPENDS:append:odroid-n2l = " u-boot-odroid-n2l"
+DEPENDS:append:odroid-n2l = " u-boot-odroid-n2"
 IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
 
 DISPLAY_PLATFORM ?= "wayland"
