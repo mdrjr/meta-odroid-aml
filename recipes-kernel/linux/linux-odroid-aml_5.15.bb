@@ -7,14 +7,14 @@ require linux-odroid-aml.inc
 inherit local-git
 
 SRCREV_FORMAT = "mm_cd"
-SRCREV = "72460c37258e2a19155949023af6081078a049db"
-SRCREV_mm = "61d677d7238671960b4bf2d544d1abc1ab688be4"
-SRCREV_cd = "79993cb1aa356ab5ae6e6cd16b8536f2dde5855e"
+SRCREV = "65751af72e0d3927dac0675d47d59cbd3f331e4c"
+SRCREV_mm = "eced0119c2ba53df208789f6e59c961ce49146f5"
+SRCREV_cd = "6e52ffa51899e1062dd9a91ffe1d3338bf9ebd1b"
 
 SRC_URI = " \
 	git://github.com/hardkernel/linux.git;protocol=https;nobranch=1;branch=odroids7d-5.15.y; \
-	git://github.com/mdrjr/linux;protocol=https;nobranch=1;branch=mm_s7d_5.15.y;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/media_modules;name=mm \
-	git://github.com/mdrjr/linux;protocol=https;nobranch=1;branch=cd_s7d_5.15.y;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/common_drivers;name=cd \
+	git://github.com/mdrjr/linux.git;protocol=https;nobranch=1;branch=odroids7d-5.15.y;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/media_modules;name=mm \
+	git://github.com/mdrjr/linux.git;protocol=https;nobranch=1;branch=odroids7d-5.15.y;destsuffix=${BB_GIT_DEFAULT_DESTSUFFIX}/common_drivers;name=cd \
 	file://0001-add-realtek-wifi-vendor-driver.patch \
 	file://0002-yocto-kernel-defconfig.patch \
 	file://0003-patch-realtek-vendor-driver-to-support-amlogic-kerne.patch \
