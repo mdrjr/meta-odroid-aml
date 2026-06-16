@@ -1,0 +1,135 @@
+From c89d3511e975482e7de2541db98c13e711c79ec0 Mon Sep 17 00:00:00 2001
+From: "phillip.choi" <phillip.choi@hardkernel.com>
+Date: Thu, 10 Jul 2025 11:47:52 +0900
+Subject: [PATCH 3/4] ODROID-C5: Fix Screen Glitches in Fullscreen Mode on
+ GNOME Desktop
+
+Entering fullscreen mode causes screen glitches on gnome-desktop in ODROID-C5.
+Keeping the bubble surface on the toplevel surface in fullscreen mode
+helps prevent screen glitches, so a small hacks has been added.
+
+Signed-off-by: phillip.choi <phillip.choi@hardkernel.com>
+Change-Id: I264e0818969ee5d143e62a0d174e6930c26ba1f2
+---
+ .../platform/wayland/host/wayland_bubble.cc    | 18 ++++++++++++++++--
+ .../wayland/host/wayland_toplevel_window.cc    |  6 ++++++
+ .../wayland/host/wayland_toplevel_window.h     |  2 ++
+ .../platform/wayland/host/wayland_window.cc    |  2 ++
+ .../platform/wayland/host/wayland_window.h     |  1 +
+ 5 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/ui/ozone/platform/wayland/host/wayland_bubble.cc b/ui/ozone/platform/wayland/host/wayland_bubble.cc
+index af863c3373..6ade09997d 100644
+--- a/ui/ozone/platform/wayland/host/wayland_bubble.cc
++++ b/ui/ozone/platform/wayland/host/wayland_bubble.cc
+@@ -9,6 +9,7 @@
+ #include "ui/ozone/platform/wayland/host/wayland_buffer_manager_host.h"
+ #include "ui/ozone/platform/wayland/host/wayland_connection.h"
+ #include "ui/ozone/platform/wayland/host/wayland_data_drag_controller.h"
++#include "ui/ozone/platform/wayland/host/wayland_toplevel_window.h"
+ #include "ui/ozone/platform/wayland/host/wayland_window.h"
+ #include "ui/ozone/platform/wayland/host/wayland_window_manager.h"
+ #include "ui/platform_window/platform_window_init_properties.h"
+@@ -31,7 +32,15 @@
+ 
+ void WaylandBubble::Show(bool inactive) {
+   if (subsurface_) {
+-    return;
++    // ODROID HACK
++    // When the window enters fullscreen mode, reset the previous bubble
++    // here and create a new one. Resetting the bubble in |::Hide| causes
++    // weird screen glitches in gnome-desktop on ODROID-C5.
++    if (!parent_window()->AsWaylandToplevelWindow()->IsFullscreen()) {
++      return;
++    }
++    subsurface_.reset();
++    connection()->Flush();
+   }
+ 
+   UpdateWindowScale(false);
+@@ -46,7 +55,12 @@
+ 
+   WaylandWindow::Hide();
+   Deactivate();
+-  subsurface_.reset();
++  // ODROID HACK
++  // Keeping the bubble surface on the toplevel surface in fullscreen mode 
++  // helps prevent weird screen glitches in gnome-desktop on ODROID-C5.
++  if (!parent_window()->AsWaylandToplevelWindow()->IsFullscreen()) {
++    subsurface_.reset();
++  }
+   connection()->Flush();
+ }
+ 
+
+index 06767c53ad..3e84cd8846 100644
+--- a/ui/ozone/platform/wayland/host/wayland_toplevel_window.cc
++++ b/ui/ozone/platform/wayland/host/wayland_toplevel_window.cc
+@@ -204,6 +204,8 @@ void WaylandToplevelWindow::SetFullscreen(bool fullscreen,
+   // The `target_display_id` must be invalid if not going into fullscreen.
+   DCHECK(fullscreen || target_display_id == display::kInvalidDisplayId);
+ 
++  is_fullscreen_ = fullscreen;
++
+   if (base::FeatureList::IsEnabled(features::kAsyncFullscreenWindowState)) {
+     if (fullscreen) {
+       xdg_toplevel_->SetFullscreen(
+@@ -231,6 +233,10 @@ void WaylandToplevelWindow::SetFullscreen(bool fullscreen,
+   SetWindowState(new_state, display_id);
+ }
+ 
++bool WaylandToplevelWindow::IsFullscreen() {
++  return is_fullscreen_;
++}
++
+ void WaylandToplevelWindow::Maximize() {
+   SetWindowState(PlatformWindowState::kMaximized, display::kInvalidDisplayId);
+ }
+diff --git a/ui/ozone/platform/wayland/host/wayland_toplevel_window.h b/ui/ozone/platform/wayland/host/wayland_toplevel_window.h
+index a7a091ce14..8e4f5567b7 100644
+--- a/ui/ozone/platform/wayland/host/wayland_toplevel_window.h
++++ b/ui/ozone/platform/wayland/host/wayland_toplevel_window.h
+@@ -95,6 +95,7 @@ class WaylandToplevelWindow : public WaylandWindow,
+   bool IsVisible() const override;
+   void SetTitle(const std::u16string& title) override;
+   void SetFullscreen(bool fullscreen, int64_t target_display_id) override;
++  bool IsFullscreen();
+   void Maximize() override;
+   void Minimize() override;
+   void Restore() override;
+@@ -222,6 +223,7 @@ class WaylandToplevelWindow : public WaylandWindow,
+   bool is_active_ = false;
+   bool is_xdg_active_ = false;
+   bool is_suspended_ = false;
++  bool is_fullscreen_ = false;
+ 
+   // Id of the chromium app passed through
+   // PlatformWindowInitProperties::wm_class_name. This is used by Wayland
+diff --git a/ui/ozone/platform/wayland/host/wayland_window.cc b/ui/ozone/platform/wayland/host/wayland_window.cc
+index ccebfaae44..55a82494fb 100644
+--- a/ui/ozone/platform/wayland/host/wayland_window.cc
++++ b/ui/ozone/platform/wayland/host/wayland_window.cc
+@@ -600,6 +600,8 @@ bool WaylandWindow::HasCapture() const {
+ 
+ void WaylandWindow::SetFullscreen(bool fullscreen, int64_t target_display_id) {}
+ 
++bool WaylandWindow::IsFullscreen() { return false; }
++
+ void WaylandWindow::Maximize() {}
+ 
+ void WaylandWindow::Minimize() {}
+diff --git a/ui/ozone/platform/wayland/host/wayland_window.h b/ui/ozone/platform/wayland/host/wayland_window.h
+index 18cfc6f656..001d71f5aa 100644
+--- a/ui/ozone/platform/wayland/host/wayland_window.h
++++ b/ui/ozone/platform/wayland/host/wayland_window.h
+@@ -221,6 +221,7 @@ class WaylandWindow : public PlatformWindow,
+   void ReleaseVideoCapture() override;
+   bool HasCapture() const override;
+   void SetFullscreen(bool fullscreen, int64_t target_display_id) override;
++  bool IsFullscreen();
+   void Maximize() override;
+   void Minimize() override;
+   void Restore() override;
+-- 
+2.51.0
+

@@ -1,0 +1,72 @@
+From 6e9a75694d09ccc56da56e134c75ad7194876cb2 Mon Sep 17 00:00:00 2001
+From: "phillip.choi" <phillip.choi@hardkernel.com>
+Date: Fri, 1 Aug 2025 10:13:28 +0900
+Subject: [PATCH 4/4] ODROID-C5: Fix YouTube Video Looping
+
+On ODROID-C5, continuous YouTube video playback was not working even when
+'Loop' option is enabled. The root cause is still unknown, but this patch
+makes that YouTube video keep looping when the 'Loop' option is set.
+
+Signed-off-by: phillip.choi <phillip.choi@hardkernel.com>
+Change-Id: I02045771599c8f494f35ad0c240f7432b4131589
+---
+ .../blink/renderer/core/html/media/html_media_element.cc  | 8 ++++++++
+ .../blink/renderer/core/html/media/html_media_element.h   | 2 ++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/third_party/blink/renderer/core/html/media/html_media_element.cc b/third_party/blink/renderer/core/html/media/html_media_element.cc
+index 43a11b8f07..9ba8639e49 100644
+--- a/third_party/blink/renderer/core/html/media/html_media_element.cc
++++ b/third_party/blink/renderer/core/html/media/html_media_element.cc
+@@ -1703,6 +1703,9 @@ void HTMLMediaElement::StartPlayerLoad() {
+ 
+   web_media_player_->SetPreservesPitch(preservesPitch());
+ 
++  if (was_looped_)
++    SetLoop(true);
++
+   OnLoadStarted();
+ }
+ 
+@@ -3108,6 +3111,8 @@ bool HTMLMediaElement::Loop() const {
+ 
+ void HTMLMediaElement::SetLoop(bool b) {
+   DVLOG(3) << "setLoop(" << *this << ", " << base::ToString(b) << ")";
++
++  was_looped_ = Loop();
+   SetBooleanAttribute(html_names::kLoopAttr, b);
+ }
+ 
+@@ -3767,6 +3772,7 @@ void HTMLMediaElement::TimeChanged() {
+   if (EndedPlayback(LoopCondition::kIgnored)) {
+     // If the media element has a loop attribute specified
+     if (Loop()) {
++      SetLoop(true);
+       //  then seek to the earliest possible position of the media resource and
+       //  abort these steps.
+       Seek(EarliestPossiblePosition());
+@@ -4133,6 +4139,8 @@ void HTMLMediaElement::ContextDestroyed() {
+   removed_from_document_timer_.Stop();
+ 
+   UpdateVideoVisibilityTracker();
++
++  SetLoop(false);
+ }
+ 
+ bool HTMLMediaElement::HasPendingActivity() const {
+diff --git a/third_party/blink/renderer/core/html/media/html_media_element.h b/third_party/blink/renderer/core/html/media/html_media_element.h
+index 0f38ecb598..c19f034269 100644
+--- a/third_party/blink/renderer/core/html/media/html_media_element.h
++++ b/third_party/blink/renderer/core/html/media/html_media_element.h
+@@ -881,6 +881,8 @@ class CORE_EXPORT HTMLMediaElement
+ 
+   bool was_always_muted_ : 1;
+ 
++  bool was_looped_ = false;
++
+   // Set if the user has used the context menu to set the visibility of the
+   // controls.
+   std::optional<bool> user_wants_controls_visible_;
+-- 
+2.51.0
+

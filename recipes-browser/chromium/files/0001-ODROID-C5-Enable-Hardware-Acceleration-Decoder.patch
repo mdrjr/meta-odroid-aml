@@ -1,0 +1,168 @@
+From 5d5d845a57b2cf796ab1743cfeb29fbfa14afa8d Mon Sep 17 00:00:00 2001
+From: "phillip.choi" <phillip.choi@hardkernel.com>
+Date: Wed, 18 Jun 2025 16:11:18 +0900
+Subject: [PATCH 1/4] ODROID-C5: Enable Hardware Acceleration Decoder
+
+Hardware accelerated decoding supports for H264, H265, VP9, AV1 codecs
+on ODROID-C5.
+
+Signed-off-by: phillip.choi <phillip.choi@hardkernel.com>
+Change-Id: I730e8a75ff5b3eea1abd01866422aaee2580d044
+---
+ media/gpu/chromeos/video_decoder_pipeline.cc  |  8 +++++
+ .../v4l2_video_decoder_backend_stateful.cc    |  2 ++
+ media/gpu/v4l2/v4l2_device.h                  |  5 +++
+ media/gpu/v4l2/v4l2_queue.cc                  |  5 +++
+ media/gpu/v4l2/v4l2_utils.cc                  | 33 +++++++++++++++----
+ media/gpu/v4l2/v4l2_vda_helpers.cc            |  2 ++
+ 6 files changed, 49 insertions(+), 6 deletions(-)
+
+diff --git a/media/gpu/chromeos/video_decoder_pipeline.cc b/media/gpu/chromeos/video_decoder_pipeline.cc
+index 69bc3bc8a5..68d58a301d 100644
+--- a/media/gpu/chromeos/video_decoder_pipeline.cc
++++ b/media/gpu/chromeos/video_decoder_pipeline.cc
+@@ -1107,7 +1107,15 @@ VideoDecoderPipeline::PickDecoderOutputFormat(
+           viable_candidate = candidate;
+           break;
+         }
++
++        // ODROID HACK
++        if (candidate.fourcc == Fourcc(Fourcc::NM21)) {
++          viable_candidate = candidate;
++          viable_candidate->fourcc = Fourcc(Fourcc::NM12);
++          break;
++        }
+       }
++
+       if (viable_candidate)
+         break;
+     }
+diff --git a/media/gpu/v4l2/legacy/v4l2_video_decoder_backend_stateful.cc b/media/gpu/v4l2/legacy/v4l2_video_decoder_backend_stateful.cc
+index b77f2b08d7..2a7ba42371 100644
+--- a/media/gpu/v4l2/legacy/v4l2_video_decoder_backend_stateful.cc
++++ b/media/gpu/v4l2/legacy/v4l2_video_decoder_backend_stateful.cc
+@@ -760,8 +760,10 @@ bool V4L2StatefulVideoDecoderBackend::IsSupportedProfile(
+   if (supported_profiles_.empty()) {
+     const std::vector<uint32_t> kSupportedInputFourccs = {
+         V4L2_PIX_FMT_H264,
++        V4L2_PIX_FMT_HEVC,
+         V4L2_PIX_FMT_VP8,
+         V4L2_PIX_FMT_VP9,
++        V4L2_PIX_FMT_AV1,
+     };
+     auto device = base::MakeRefCounted<V4L2Device>();
+     VideoDecodeAccelerator::SupportedProfiles profiles =
+diff --git a/media/gpu/v4l2/v4l2_device.h b/media/gpu/v4l2/v4l2_device.h
+index 210bf4a0ba..58d6652da4 100644
+--- a/media/gpu/v4l2/v4l2_device.h
++++ b/media/gpu/v4l2/v4l2_device.h
+@@ -38,8 +38,13 @@
+ 
+ // This has not been accepted upstream.
+ #ifndef V4L2_PIX_FMT_AV1
++#if BUILDFLAG(IS_CHROMEOS)
+ #define V4L2_PIX_FMT_AV1 v4l2_fourcc('A', 'V', '0', '1') /* AV1 */
++#else
++#define V4L2_PIX_FMT_AV1 v4l2_fourcc('A', 'V', '1', '0') /* AV1 */
+ #endif
++#endif
++
+ // This has been upstreamed and backported for ChromeOS, but has not been
+ // picked up by the Chromium sysroots.
+ #ifndef V4L2_PIX_FMT_AV1_FRAME
+diff --git a/media/gpu/v4l2/v4l2_queue.cc b/media/gpu/v4l2/v4l2_queue.cc
+index 19454e9a88..8916198077 100644
+--- a/media/gpu/v4l2/v4l2_queue.cc
++++ b/media/gpu/v4l2/v4l2_queue.cc
+@@ -1072,10 +1072,15 @@ V4L2Queue::V4L2Queue(base::PassKey<PassKey>,
+       weak_this_factory_(this) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+ 
++// ODROID HACK
++#if BUILDFLAG(IS_CHROMEOS)
+   struct v4l2_requestbuffers reqbufs = {
+       .count = 0, .type = type_, .memory = V4L2_MEMORY_MMAP};
+   supports_requests_ = (ioctl_cb_.Run(VIDIOC_REQBUFS, &reqbufs) == kIoctlOk) &&
+                        (reqbufs.capabilities & V4L2_BUF_CAP_SUPPORTS_REQUESTS);
++#else
++  supports_requests_ = false;
++#endif
+ 
+   // Stateful backends for example do not support requests.
+   VPLOG_IF(4, supports_requests_)
+diff --git a/media/gpu/v4l2/v4l2_utils.cc b/media/gpu/v4l2/v4l2_utils.cc
+index 4ae99deb0f..301279ac9a 100644
+--- a/media/gpu/v4l2/v4l2_utils.cc
++++ b/media/gpu/v4l2/v4l2_utils.cc
+@@ -35,14 +35,32 @@
+ 
+ // This has not been accepted upstream.
+ #ifndef V4L2_PIX_FMT_AV1
++#if BUILDFLAG(IS_CHROMEOS)
+ #define V4L2_PIX_FMT_AV1 v4l2_fourcc('A', 'V', '0', '1') /* AV1 */
++#else
++#define V4L2_PIX_FMT_AV1 v4l2_fourcc('A', 'V', '1', '0') /* AV1 */
+ #endif
++#endif
++
+ // This has been upstreamed and backported for ChromeOS, but has not been
+ // picked up by the Chromium sysroots.
+ #ifndef V4L2_PIX_FMT_AV1_FRAME
+ #define V4L2_PIX_FMT_AV1_FRAME v4l2_fourcc('A', 'V', '1', 'F')
+ #endif
+ 
++#ifndef V4L2_CID_MPEG_VIDEO_AV1_PROFILE
++#ifdef V4L2_CID_CODEC_BASE
++#define V4L2_CID_MPEG_VIDEO_AV1_PROFILE (V4L2_CID_CODEC_BASE + 655)
++#else
++#define V4L2_CID_MPEG_VIDEO_AV1_PROFILE (V4L2_CID_MPEG_BASE + 655)
++#endif
++enum v4l2_mpeg_video_av1_profile {
++  V4L2_MPEG_VIDEO_AV1_PROFILE_MAIN = 0,
++  V4L2_MPEG_VIDEO_AV1_PROFILE_HIGH = 1,
++  V4L2_MPEG_VIDEO_AV1_PROFILE_PROFESSIONAL = 2,
++};
++#endif
++
+ #define MAKE_V4L2_CODEC_PAIR(codec, suffix) \
+   std::make_pair(codec##_##suffix, codec)
+ 
+@@ -333,5 +351,6 @@ static const std::map<v4l2_enum_type, v4l2_enum_type>
+         {V4L2_PIX_FMT_H264_SLICE, V4L2_CID_MPEG_VIDEO_H264_PROFILE},
+ #if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
++        {V4L2_PIX_FMT_HEVC, V4L2_CID_MPEG_VIDEO_HEVC_PROFILE},
+         {V4L2_PIX_FMT_HEVC_SLICE, V4L2_CID_MPEG_VIDEO_HEVC_PROFILE},
+ #endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
+         {V4L2_PIX_FMT_VP8, V4L2_CID_MPEG_VIDEO_VP8_PROFILE},
+@@ -644,10 +663,12 @@ bool IsV4L2DecoderStateful() {
+       V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+ 
+   // V4L2 stateful formats (don't end up with _SLICE or _FRAME) supported.
+-  constexpr std::array<uint32_t, 4> kSupportedStatefulInputCodecs = {
++  constexpr std::array<uint32_t, 5> kSupportedStatefulInputCodecs = {
+       V4L2_PIX_FMT_H264,
++      V4L2_PIX_FMT_HEVC,
+       V4L2_PIX_FMT_VP8,
+       V4L2_PIX_FMT_VP9,
++      V4L2_PIX_FMT_AV1,
+   };
+ 
+   return std::find_first_of(v4l2_codecs.begin(), v4l2_codecs.end(),
+diff --git a/media/gpu/v4l2/v4l2_vda_helpers.cc b/media/gpu/v4l2/v4l2_vda_helpers.cc
+index 4a162eee45..df153e34b5 100644
+--- a/media/gpu/v4l2/v4l2_vda_helpers.cc
++++ b/media/gpu/v4l2/v4l2_vda_helpers.cc
+@@ -156,8 +156,10 @@ InputBufferFragmentSplitter::CreateFromProfile(
+     case VideoCodec::kH264:
+       return std::make_unique<
+           v4l2_vda_helpers::H264InputBufferFragmentSplitter>();
++    case VideoCodec::kHEVC:
+     case VideoCodec::kVP8:
+     case VideoCodec::kVP9:
++    case VideoCodec::kAV1:
+       // VP8/VP9 don't need any frame splitting, use the default implementation.
+       return std::make_unique<v4l2_vda_helpers::InputBufferFragmentSplitter>();
+     default:
+-- 
+2.51.0
+

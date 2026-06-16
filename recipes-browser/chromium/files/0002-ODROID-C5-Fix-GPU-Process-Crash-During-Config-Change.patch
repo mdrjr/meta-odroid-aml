@@ -1,0 +1,41 @@
+From d2f3edc111e04a055ddfb77199683910a8d11f09 Mon Sep 17 00:00:00 2001
+From: "phillip.choi" <phillip.choi@hardkernel.com>
+Date: Mon, 30 Jun 2025 17:55:01 +0900
+Subject: [PATCH 2/4] ODROID-C5: Fix GPU Process Crash During Config Change
+
+When the decoder receives a signal that the config has changed,
+it should be reinitialized to apply the new config.
+
+However, |PrependDecoder()| prevents reinitializing by appending
+the existing decoder to the list of reinitialized decoders.
+
+When using the hardware decoder like V4L2, this caused GPU process crash
+due to a mismatch between the decoder's previous config and the new config.
+
+Disabled it to allow creating a completely new reinitialized decoder list.
+(Set the IS_ANDROID flag, as the decoder example in the annotation is
+for Android.)
+
+Signed-off-by: phillip.choi <phillip.choi@hardkernel.com>
+Change-Id: I38a9be1da1e0375563c546488d84c95263d4331b
+---
+ media/filters/decoder_stream.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/media/filters/decoder_stream.cc b/media/filters/decoder_stream.cc
+index 2f6ef049b4..4c94bfdd7a 100644
+--- a/media/filters/decoder_stream.cc
++++ b/media/filters/decoder_stream.cc
+@@ -963,7 +963,9 @@ void DecoderStream<StreamType>::ReinitializeDecoder() {
+   // Note: Some VideoDecoder implementations (e.g., MediaCodecVideoDecoder) are
+   // relying on the fact that the existing VideoDecoder instance is given first
+   // dibs to handle any configuration changes. Take care when changing this.
++#if BUILDFLAG(IS_ANDROID)
+   decoder_selector_.PrependDecoder(std::move(decoder_));
++#endif
+ 
+   BeginDecoderSelection();
+ }
+-- 
+2.51.0
+
