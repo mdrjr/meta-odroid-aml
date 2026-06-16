@@ -42,6 +42,8 @@ IMAGE_INSTALL:append = " \
 IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-firmware"
 # Amlogic OP-TEE secure-video stack (C5)
 IMAGE_INSTALL:append:odroid-c5 = " aml-optee aml-videofirmware"
+# Autoload Amlogic VDEC/encoder/sound modules
+IMAGE_INSTALL:append:odroid-c5 = " aml-modules-load"
 # Meson VDEC firmware blobs for hw video decode (sm1_vp9_mmu, g12a_h264, gxl_mpeg12)
 IMAGE_INSTALL:append:odroid-c4 = " linux-firmware-amlogic-vdec"
 IMAGE_INSTALL:append:odroid-n2 = " linux-firmware-amlogic-vdec"
