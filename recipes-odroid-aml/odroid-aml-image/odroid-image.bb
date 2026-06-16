@@ -31,7 +31,6 @@ IMAGE_INSTALL:append:odroid-n2plus = " chromium-ozone-wayland"
 IMAGE_INSTALL:append:odroid-n2l = " chromium-ozone-wayland"
 IMAGE_INSTALL:append = " weston v4l-utils libv4l"
 
-# glmark2 (PACKAGECONFIG set in odroid.inc so it reaches the glmark2 recipe)
 IMAGE_INSTALL:append = " glmark2"
 
 # For WiFi
@@ -41,6 +40,8 @@ IMAGE_INSTALL:append = " \
 
 # Misc
 IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-firmware"
+# Amlogic OP-TEE secure-video stack (C5)
+IMAGE_INSTALL:append:odroid-c5 = " aml-optee aml-videofirmware"
 # Meson VDEC firmware blobs for hw video decode (sm1_vp9_mmu, g12a_h264, gxl_mpeg12)
 IMAGE_INSTALL:append:odroid-c4 = " linux-firmware-amlogic-vdec"
 IMAGE_INSTALL:append:odroid-n2 = " linux-firmware-amlogic-vdec"
