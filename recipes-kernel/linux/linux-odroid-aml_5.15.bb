@@ -19,6 +19,7 @@ SRC_URI = " \
 	file://0002-yocto-kernel-defconfig.patch \
 	file://0003-patch-realtek-vendor-driver-to-support-amlogic-kerne.patch \
 	file://increase-heap-gfx-for-4k-support.fix \
+	file://0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix \
     	file://rtl.cfg \
 "
 
@@ -30,6 +31,7 @@ LINUX_VERSION ?= "5.15"
 do_patch:append() {
     sed -i '0,/ccflags-y += -I./ s/ccflags-y += -I./ccflags-y += -I. -Wno-enum-int-mismatch/g' ${S}/common_drivers/drivers/media/di_multi/Makefile
     patch -p0 < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources/increase-heap-gfx-for-4k-support.fix
+    patch -p1 -d ${S} < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix
 }
 
 do_copy_dtb() { 
