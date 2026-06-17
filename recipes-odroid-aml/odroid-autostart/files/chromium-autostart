@@ -1,7 +1,6 @@
 #!/bin/sh
 
 WESTON_USER=$1
-ifup eth0
 NTP="1"
 NTP_SERVER="time.google.com"
 URL="http://claro.mdrjr.me/video/index.html"
