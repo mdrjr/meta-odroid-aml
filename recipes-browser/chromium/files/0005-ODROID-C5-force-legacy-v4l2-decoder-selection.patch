@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Date: Mon, 16 Jun 2026 18:30:00 -0300
+Subject: [PATCH] ODROID-C5: force legacy V4L2 decoder selection
+
+Chromium 148 selects the new V4L2StatefulVideoDecoder whenever
+IsV4L2DecoderStateful() is true. 
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+ media/gpu/v4l2/v4l2_utils.cc | 25 +++++++------------------
+ 1 file changed, 7 insertions(+), 18 deletions(-)
+
+diff --git a/media/gpu/v4l2/v4l2_utils.cc b/media/gpu/v4l2/v4l2_utils.cc
+--- a/media/gpu/v4l2/v4l2_utils.cc
++++ b/media/gpu/v4l2/v4l2_utils.cc
+@@ -659,28 +659,17 @@
+ }
+ 
+ bool IsV4L2DecoderStateful() {
+-  auto device_fd = V4L2Device::OpenFDForType(V4L2Device::Type::kDecoder);
+-  if (!device_fd.is_valid()) {
+-    return false;
+-  }
+-
+-  std::vector<uint32_t> v4l2_codecs = EnumerateSupportedPixFmts(
+-      base::BindRepeating(&HandledIoctl, device_fd.get()),
+-      V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+-
+-  // V4L2 stateful formats (don't end up with _SLICE or _FRAME) supported.
+-  constexpr std::array<uint32_t, 5> kSupportedStatefulInputCodecs = {
+-      V4L2_PIX_FMT_H264,
+-      V4L2_PIX_FMT_HEVC,
+-      V4L2_PIX_FMT_VP8,
+-      V4L2_PIX_FMT_VP9,
+-      V4L2_PIX_FMT_AV1,
+-  };
+-
+-  return std::find_first_of(v4l2_codecs.begin(), v4l2_codecs.end(),
+-                            kSupportedStatefulInputCodecs.begin(),
+-                            kSupportedStatefulInputCodecs.end()) !=
+-         v4l2_codecs.end();
++  // ODROID-C5: report non-stateful so VideoDecoderPipeline selects the legacy
++  // V4L2VideoDecoder (which drives the Amlogic aml-vcodec-dec via
++  // V4L2StatefulVideoDecoderBackend) instead of the new V4L2StatefulVideoDecoder.
++  // The new decoder mis-drives this vendor decoder (every frame BUFEMPTYs and
++  // the context aborts before AML_STATE_PROBE, so no SOURCE_CHANGE is posted).
++  // Chromium 138 -- verified HW-decoding 4K VP9 on this exact kernel (video26,
++  // 0 frame errors) via the legacy decoder -- reached this path because its
++  // probe opened a hardcoded "/dev/video-dec0" that does not exist here and so
++  // returned false. 148 changed it to enumerate /dev/video* and find video26,
++  // flipping the result to true. Restore the 138 outcome.
++  return false;
+ }
+ 
+ bool IsVislDriver() {

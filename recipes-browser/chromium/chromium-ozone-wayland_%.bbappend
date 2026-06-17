@@ -4,11 +4,9 @@ SRC_URI += "file://0001-add-NM12-to-linux-renderable-fourccs.patch"
 SRC_URI += "file://0002-v4l2-add-stateful-HEVC-to-profile-CID-map.patch"
 SRC_URI += "file://0003-v4l2-enable-hevc-in-stateful-decoder.patch"
 
-# Remove patches for Upstream kernel
 SRC_URI:remove:odroid-c5 = " \
     file://0001-add-NM12-to-linux-renderable-fourccs.patch \
     file://0002-v4l2-add-stateful-HEVC-to-profile-CID-map.patch \
-    file://0003-v4l2-enable-hevc-in-stateful-decoder.patch \
 "
 
 # ODROID-C5-specific chromium patches 
@@ -17,6 +15,7 @@ SRC_URI:append:odroid-c5 = " \
     file://0002-ODROID-C5-Fix-GPU-Process-Crash-During-Config-Change.patch \
     file://0003-ODROID-C5-Fix-Screen-Glitches-in-Fullscreen-Mode-on-.patch \
     file://0004-ODROID-C5-Fix-YouTube-Video-Looping.patch \
+    file://0005-ODROID-C5-force-legacy-v4l2-decoder-selection.patch \
 "
 
 PACKAGECONFIG ??= "use-egl use-v4l2 use-linux-v4l2 proprietary-codecs"
