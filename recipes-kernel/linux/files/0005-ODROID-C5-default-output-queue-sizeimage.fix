@@ -1,0 +1,24 @@
+ODROID-C5: default OUTPUT (coded) queue sizeimage instead of rejecting
+
+diff --git a/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c b/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
+--- a/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
++++ b/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
+@@ -3214,13 +3214,8 @@
+ 	if (V4L2_TYPE_IS_MULTIPLANAR(f->type)) {
+-		if (pix_mp->plane_fmt[0].sizeimage == 0) {
+-			v4l_dbg(0, V4L_DEBUG_CODEC_ERROR,
+-				"sizeimage of output format must be given\n");
+-			return -EINVAL;
+-		}
++		if (pix_mp->plane_fmt[0].sizeimage == 0)
++			pix_mp->plane_fmt[0].sizeimage =
++				pix_mp->width * pix_mp->height;
+ 	} else {
+-		if (pix->sizeimage == 0) {
+-			v4l_dbg(0, V4L_DEBUG_CODEC_ERROR,
+-				"sizeimage of output format must be given\n");
+-			return -EINVAL;
+-		}
++		if (pix->sizeimage == 0)
++			pix->sizeimage = pix->width * pix->height;
+ 	}
