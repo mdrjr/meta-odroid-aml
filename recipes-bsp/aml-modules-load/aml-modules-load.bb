@@ -10,6 +10,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 SRC_URI = " \
     file://multimedia-amlogic.conf \
     file://sound-amlogic.conf \
+    file://amvdec_ports.conf \
 "
 
 S = "${UNPACKDIR}"
@@ -18,9 +19,11 @@ do_install() {
     install -d ${D}${sysconfdir}/modules-load.d
     install -m 0644 ${UNPACKDIR}/multimedia-amlogic.conf ${D}${sysconfdir}/modules-load.d/
     install -m 0644 ${UNPACKDIR}/sound-amlogic.conf ${D}${sysconfdir}/modules-load.d/
+    install -d ${D}${sysconfdir}/modprobe.d
+    install -m 0644 ${UNPACKDIR}/amvdec_ports.conf ${D}${sysconfdir}/modprobe.d/
 }
 
-FILES:${PN} = "${sysconfdir}/modules-load.d"
+FILES:${PN} = "${sysconfdir}/modules-load.d ${sysconfdir}/modprobe.d"
 
 RDEPENDS:${PN} += " \
     kernel-module-amlogic-dvb-demux \
