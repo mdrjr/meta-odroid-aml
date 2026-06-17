@@ -1,0 +1,10 @@
+[Match]
+Name=eth0
+
+[Network]
+DHCP=yes
+
+[DHCP]
+UseMTU=yes
+RouteMetric=10
+ClientIdentifier=mac
