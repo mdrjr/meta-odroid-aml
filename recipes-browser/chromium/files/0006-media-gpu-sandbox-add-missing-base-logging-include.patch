@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+Date: Wed, 18 Jun 2026 12:00:00 -0300
+Subject: [PATCH] media/gpu/sandbox: add missing base/logging.h include
+
+Signed-off-by: Mauro Ribeiro <mauro.ribeiro@hardkernel.com>
+---
+ .../sandbox/hardware_video_decoding_sandbox_hook_linux.cc      | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+--- a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
++++ b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+@@ -10,5 +10,6 @@
++#include "base/logging.h"
+ #include "base/process/process_metrics.h"
+ #include "base/strings/stringprintf.h"
+ #include "build/build_config.h"
+ #include "media/gpu/buildflags.h"
+ #include "sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.h"

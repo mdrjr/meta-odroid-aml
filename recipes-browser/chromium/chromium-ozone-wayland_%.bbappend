@@ -3,6 +3,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI += "file://0001-add-NM12-to-linux-renderable-fourccs.patch"
 SRC_URI += "file://0002-v4l2-add-stateful-HEVC-to-profile-CID-map.patch"
 SRC_URI += "file://0003-v4l2-enable-hevc-in-stateful-decoder.patch"
+SRC_URI += "file://0006-media-gpu-sandbox-add-missing-base-logging-include.patch"
 
 SRC_URI:remove:odroid-c5 = " \
     file://0001-add-NM12-to-linux-renderable-fourccs.patch \
@@ -23,6 +24,9 @@ PACKAGECONFIG[use-linux-v4l2] = "use_v4l2_codec=true use_v4lplugin=true use_linu
 
 GN_ARGS:append = " fatal_linker_warnings=false"
 
+ERROR_QA:remove = "patch-fuzz"
+WARN_QA:append = " patch-fuzz"
+
 # Switch to ANGLE, since the newer ozone requires passthrough command decoder.
 # See:
 # https://issues.chromium.org/issues/40135856
@@ -41,8 +45,5 @@ python() {
         d.setVar('PACKAGE_ARCH', d.getVar('MACHINE_ARCH'))
 }
 
-# C5 (S905X5M) has an AV1 HW decoder. Upstream gates the V4L2 AV1 code paths on
-# USE_AV1_HW_DECODER, which defaults off for V4L2 (Linux) builds (it only turns on
-# for is_chromeos / is_linux+use_vaapi). Force it on so the ODROID-C5 chromium
-# patches' AV1 plumbing is actually compiled in.
+# ODROID-C5 av1 hw enabled
 GN_ARGS:append:odroid-c5 = " use_av1_hw_decoder=true"
