@@ -30,10 +30,24 @@ LINUX_VERSION ?= "5.15"
 # HACK: We manually patch this file to build with GCC-14
 # Done to avoid forking and patching
 do_patch:append() {
-    sed -i '0,/ccflags-y += -I./ s/ccflags-y += -I./ccflags-y += -I. -Wno-enum-int-mismatch/g' ${S}/common_drivers/drivers/media/di_multi/Makefile
-    patch -p0 < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources/increase-heap-gfx-for-4k-support.fix
-    patch -p1 -d ${S} < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix
-    patch -p1 -d ${S} < ${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources/0005-ODROID-C5-default-output-queue-sizeimage.fix
+    srcfix="${TMPDIR}/work/${MULTIMACH_TARGET_SYS}/${PN}/${EXTENDPE}${PV}/sources"
+
+    # GCC-14: add -Wno-enum-int-mismatch (only once)
+    if ! grep -q -- '-Wno-enum-int-mismatch' ${S}/common_drivers/drivers/media/di_multi/Makefile; then
+        sed -i '0,/ccflags-y += -I./ s/ccflags-y += -I./ccflags-y += -I. -Wno-enum-int-mismatch/g' ${S}/common_drivers/drivers/media/di_multi/Makefile
+    fi
+
+    if ! patch -p0 -R --dry-run -f -d ${S} < ${srcfix}/increase-heap-gfx-for-4k-support.fix >/dev/null 2>&1; then
+        patch -p0 -d ${S} < ${srcfix}/increase-heap-gfx-for-4k-support.fix
+    fi
+
+    if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix >/dev/null 2>&1; then
+        patch -p1 -d ${S} < ${srcfix}/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix
+    fi
+
+    if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0005-ODROID-C5-default-output-queue-sizeimage.fix >/dev/null 2>&1; then
+        patch -p1 -d ${S} < ${srcfix}/0005-ODROID-C5-default-output-queue-sizeimage.fix
+    fi
 }
 
 do_copy_dtb() { 
