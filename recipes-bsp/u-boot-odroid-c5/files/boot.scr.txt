@@ -1,7 +1,16 @@
+# Load addr
+setenv fdt_addr_r 0x08008000
+setenv kernel_addr_r 0x08080000
+setenv ramdisk_addr_r 0x13000000
+
+setenv fdt_high 0xffffffffffffffff
+setenv initrd_high 0xffffffffffffffff
+
 setenv bootargs " ${bootargs} init=/sbin/init root=/dev/mmcblk0p3 rootwait rw"
 setenv bootlabel "Yocto"
-# Default TTY console
 setenv bootargs "${bootargs} console=ttyS0,921600 quiet"
+
+setenv bootargs "${bootargs} roottimeout=60"
 
 setenv fdtfile "s7d_s905x5m_odroidc5.dtb"
 
@@ -12,9 +21,12 @@ setenv devtype mmc
 setenv devnum 0
 
 # Load DTB
-load ${devtype} ${devnum}:${partition} ${dtb_mem_addr} s7d_s905x5m_odroidc5.dtb
+load ${devtype} ${devnum}:${partition} ${fdt_addr_r} s7d_s905x5m_odroidc5.dtb
 
 # Load Kernel
-load ${devtype} ${devnum}:${partition} ${loadaddr_kernel} Image
-booti ${loadaddr_kernel} - ${dtb_mem_addr}
+load ${devtype} ${devnum}:${partition} ${kernel_addr_r} Image
 
+# Load initramfs 
+load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} initrd.img
+
+booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
