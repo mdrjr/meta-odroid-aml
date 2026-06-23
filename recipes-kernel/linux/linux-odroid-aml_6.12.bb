@@ -20,6 +20,7 @@ SRC_URI = " \
 	file://increase-heap-gfx-for-4k-support.fix \
 	file://0005-ODROID-C5-default-output-queue-sizeimage.fix \
 	file://0006-rtl8821-fix-6.12-kernel-api.fix \
+	file://0007-ODROID-C5-hide-mjpeg-jpeg-from-vdec-enum.fix \
     	file://defconfig \
     	file://rtl.cfg \
     	file://initramfs-boot.cfg \
@@ -55,16 +56,16 @@ do_patch:append() {
         patch -p0 -d ${S} < ${srcfix}/increase-heap-gfx-for-4k-support.fix
     fi
 
-    if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix >/dev/null 2>&1; then
-        patch -p1 -d ${S} < ${srcfix}/0004-ODROID-C5-fix-mediaproxy-producer-session-UAF.fix
-    fi
-
     if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0005-ODROID-C5-default-output-queue-sizeimage.fix >/dev/null 2>&1; then
         patch -p1 -d ${S} < ${srcfix}/0005-ODROID-C5-default-output-queue-sizeimage.fix
     fi
 
     if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0006-rtl8821-fix-6.12-kernel-api.fix >/dev/null 2>&1; then
         patch -p1 -d ${S} < ${srcfix}/0006-rtl8821-fix-6.12-kernel-api.fix
+    fi
+
+    if ! patch -p1 -R --dry-run -f -d ${S} < ${srcfix}/0007-ODROID-C5-hide-mjpeg-jpeg-from-vdec-enum.fix >/dev/null 2>&1; then
+        patch -p1 -d ${S} < ${srcfix}/0007-ODROID-C5-hide-mjpeg-jpeg-from-vdec-enum.fix
     fi
 }
 

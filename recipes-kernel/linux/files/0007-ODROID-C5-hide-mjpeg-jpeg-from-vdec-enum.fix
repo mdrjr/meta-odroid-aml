@@ -1,0 +1,23 @@
+ODROID-C5: hide MJPEG/JPEG from the V4L2 video-decoder format enum
+
+diff --git a/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c b/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
+index 20588b7b..e428914b 100644
+--- a/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
++++ b/media_modules/drivers/amvdec_ports/aml_vcodec_dec.c
+@@ -4272,6 +4272,18 @@ static int vidioc_enum_fmt(struct aml_vcodec_ctx *ctx, struct v4l2_fmtdesc *f, b
+ 			continue;
+ 		if (!output_queue && (fmt->type != AML_FMT_FRAME))
+ 			continue;
++		/*
++		 * ODROID-C5: hide MJPEG/JPEG on the video-decoder OUTPUT queue
++		 * unless support_mjpeg=1. Chromium's V4L2 decoder enumeration
++		 * only acceptss a node whose OUTPUT formats are all pure video codecs,
++		 * so the JPEG/MJPEG entries made it reject HW VP9/H264/HEVC/AV1 decode never started.
++		 */
++		if (output_queue && !support_mjpeg &&
++			((fmt->fourcc == V4L2_PIX_FMT_MJPEG) ||
++			(fmt->fourcc == V4L2_PIX_FMT_JPEG)))
++			continue;
+ 		if (support_mjpeg && !support_format_I420 &&
+ 			((fmt->fourcc == V4L2_PIX_FMT_YUV420) ||
+ 			(fmt->fourcc == V4L2_PIX_FMT_YUV420M)))
