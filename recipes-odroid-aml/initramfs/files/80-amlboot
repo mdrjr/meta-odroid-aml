@@ -1,0 +1,19 @@
+#!/bin/sh
+# ODROID-C5 initramfs module.
+
+amlboot_enabled() {
+	return 0
+}
+
+amlboot_run() {
+	for m in \
+		amlogic-debug-iotrace amlogic-hwspinlock amlogic-debug \
+		amlogic-secmon amlogic-cpuinfo user_fault amlogic-memory-debug \
+		clk-scmi amlogic-clk amlogic-clk-soc-s7d \
+		amlogic-gpio amlogic-pinctrl-soc-s7d amlogic-mailbox \
+		amlogic-pwm gpio-regulator amlogic-reset amlogic-power \
+		amlogic-cpufreq amlogic-efuse-unifykey amlogic-thermal \
+		amlogic-mmc system_heap amlogic-usb; do
+		load_kernel_module $m
+	done
+}
