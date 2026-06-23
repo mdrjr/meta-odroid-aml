@@ -22,15 +22,11 @@ diff --git a/media/gpu/v4l2/v4l2_device.cc b/media/gpu/v4l2/v4l2_device.cc
  
    pollfds[0].fd = device_poll_interrupt_fd_.get();
    pollfds[0].events = POLLIN | POLLERR;
-@@ -364,10 +365,18 @@
+@@ -364,10 +365,14 @@
      nfds++;
    }
  
 -  if (HANDLE_EINTR(poll(pollfds.data(), nfds, -1)) == -1) {
-+  // ODROID-C5: the Amlogic stateful decoder can leave poll() with no pending
-+  // buffer-done or event during a playback restart/flush (all CAPTURE+OUTPUT
-+  // buffers full), so an infinite poll() wedges the decode thread and playback
-+  // hangs. Use a finite timeout so the thread wakes and flushes/dequeues.
 +  ret = HANDLE_EINTR(poll(pollfds.data(), nfds, 500));
 +  if (ret == -1) {
      VPLOGF(1) << "poll() failed";
