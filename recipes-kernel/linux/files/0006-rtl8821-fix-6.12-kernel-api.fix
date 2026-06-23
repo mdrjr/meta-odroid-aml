@@ -1,0 +1,93 @@
+ODROID-C5: fix rtl8821au/rtl8821cu vendor drivers for kernel 6.12 APIs
+
+--- a/drivers/net/wireless/rtl8821au/os_dep/linux/ioctl_cfg80211.c
++++ b/drivers/net/wireless/rtl8821au/os_dep/linux/ioctl_cfg80211.c
+@@ -465,7 +465,9 @@
+ 		 */
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
++		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+ 		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false, 0);
+ #else
+ 		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false);
+@@ -484,7 +486,9 @@
+ 		goto exit;
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 2))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
++	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+ 	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0, 0);
+ #else
+ 	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0);
+--- a/drivers/net/wireless/rtl8821cu/os_dep/linux/ioctl_cfg80211.c
++++ b/drivers/net/wireless/rtl8821cu/os_dep/linux/ioctl_cfg80211.c
+@@ -465,7 +465,9 @@
+ 		 */
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
++		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+ 		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false, 0);
+ #else
+ 		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, 0, false);
+@@ -484,7 +486,9 @@
+ 		goto exit;
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 2))
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
++	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+ 	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0, 0);
+ #else
+ 	cfg80211_ch_switch_notify(adapter->pnetdev, &chdef, 0);
+--- a/drivers/net/wireless/rtl8821cu/os_dep/linux/os_intfs.c
++++ b/drivers/net/wireless/rtl8821cu/os_dep/linux/os_intfs.c
+@@ -2037,13 +2037,13 @@
+ 
+ 	wdev = dev->ieee80211_ptr;
+ 	if (wdev) {
+-		strlcpy(info->driver, wiphy_dev(wdev->wiphy)->driver->name,
++		strscpy(info->driver, wiphy_dev(wdev->wiphy)->driver->name,
+ 			sizeof(info->driver));
+ 	} else {
+-		strlcpy(info->driver, "N/A", sizeof(info->driver));
++		strscpy(info->driver, "N/A", sizeof(info->driver));
+ 	}
+ 
+-	strlcpy(info->version, DRIVERVERSION, sizeof(info->version));
++	strscpy(info->version, DRIVERVERSION, sizeof(info->version));
+ 
+ 	padapter = (_adapter *)rtw_netdev_priv(dev);
+ 	if (padapter) {
+@@ -2054,10 +2054,10 @@
+ 		scnprintf(info->fw_version, sizeof(info->fw_version), "%d.%d",
+ 			  hal_data->firmware_version, hal_data->firmware_sub_version);
+ 	} else {
+-		strlcpy(info->fw_version, "N/A", sizeof(info->fw_version));
++		strscpy(info->fw_version, "N/A", sizeof(info->fw_version));
+ 	}
+ 
+-	strlcpy(info->bus_info, dev_name(wiphy_dev(wdev->wiphy)),
++	strscpy(info->bus_info, dev_name(wiphy_dev(wdev->wiphy)),
+ 		sizeof(info->bus_info));
+ }
+ 
+--- a/drivers/net/wireless/rtl8821cu/os_dep/linux/usb_intf.c
++++ b/drivers/net/wireless/rtl8821cu/os_dep/linux/usb_intf.c
+@@ -337,7 +337,7 @@
+ 	.usbdrv.reset_resume   = rtw_resume,
+ #endif
+ 
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)) && (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
+ 	.usbdrv.drvwrap.driver.shutdown = rtw_dev_shutdown,
+ #else
+ 	.usbdrv.driver.shutdown = rtw_dev_shutdown,
