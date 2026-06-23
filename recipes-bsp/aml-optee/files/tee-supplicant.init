@@ -1,0 +1,32 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          tee-supplicant
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: OP-TEE tee-supplicant daemon
+### END INIT INFO
+
+DAEMON=/usr/bin/tee-supplicant
+PIDFILE=/run/tee-supplicant.pid
+
+case "$1" in
+	start)
+		echo "Starting tee-supplicant"
+		start-stop-daemon --start --background --make-pidfile \
+			--pidfile "$PIDFILE" --exec "$DAEMON"
+		;;
+	stop)
+		echo "Stopping tee-supplicant"
+		start-stop-daemon --stop --pidfile "$PIDFILE" --retry 5
+		;;
+	restart|reload)
+		"$0" stop; sleep 1; "$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
+exit 0

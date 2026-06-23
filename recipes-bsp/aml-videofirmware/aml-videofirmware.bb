@@ -5,12 +5,16 @@ LICENSE = "CLOSED"
 COMPATIBLE_MACHINE = "odroid-c5"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
-SRC_URI = "file://aml-videofirmware.tar.gz"
+SRC_URI = " \
+    file://aml-videofirmware.tar.gz \
+    file://videoFirmwarePreload.init \
+"
 S = "${UNPACKDIR}"
 
-inherit systemd
+inherit update-rc.d
 
-SYSTEMD_SERVICE:${PN} = "videoFirmwarePreload.service"
+INITSCRIPT_NAME = "videoFirmwarePreload"
+INITSCRIPT_PARAMS = "start 09 S ."
 
 RDEPENDS:${PN} += "aml-optee odroid-c5-firmware"
 
@@ -27,8 +31,8 @@ do_install() {
     install -d ${D}${nonarch_base_libdir}/optee_armtz
     install -m 0644 ${UNPACKDIR}/lib/optee_armtz/*.ta ${D}${nonarch_base_libdir}/optee_armtz/
 
-    install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${UNPACKDIR}/videoFirmwarePreload.service ${D}${systemd_system_unitdir}/
+    install -d ${D}${sysconfdir}/init.d
+    install -m 0755 ${UNPACKDIR}/videoFirmwarePreload.init ${D}${sysconfdir}/init.d/videoFirmwarePreload
 }
 
 FILES:${PN} += " \

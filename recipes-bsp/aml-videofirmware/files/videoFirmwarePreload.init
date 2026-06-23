@@ -1,0 +1,29 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          videoFirmwarePreload
+# Required-Start:    tee-supplicant
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Preload the Amlogic OP-TEE secure video firmware
+### END INIT INFO
+
+FW=/lib/firmware/video/video_ucode.bin
+
+case "$1" in
+	start)
+		echo "Preloading Amlogic video firmware"
+		i=0
+		while [ $i -lt 10 ]; do
+			/usr/bin/tee_preload_fw "$FW" && break
+			i=$((i + 1)); sleep 1
+		done
+		;;
+	stop|restart|reload)
+		;;
+	*)
+		echo "Usage: $0 {start|stop}"
+		exit 1
+		;;
+esac
+exit 0

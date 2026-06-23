@@ -1,5 +1,5 @@
-SUMMARY = "Amlogic multimedia module autoload + sysfs setup (ODROID-C5)"
-DESCRIPTION = "Boot-time autoload of the Amlogic VDEC / sysfs setup"
+SUMMARY = "Amlogic multimedia module autoload + media sysfs setup (ODROID-C5)"
+DESCRIPTION = "Boot-time load of the Amlogic VDEC/encoder + sound codec modules"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
@@ -10,12 +10,15 @@ SRC_URI = " \
     file://multimedia-amlogic.conf \
     file://sound-amlogic.conf \
     file://amlogic-media-sysfs \
-    file://amlogic-media-sysfs.service \
+    file://aml-modules-load.init \
 "
 
 S = "${UNPACKDIR}"
 
-inherit systemd
+inherit update-rc.d
+
+INITSCRIPT_NAME = "aml-modules-load"
+INITSCRIPT_PARAMS = "start 15 S ."
 
 do_install() {
     install -d ${D}${sysconfdir}/modules-load.d
@@ -25,13 +28,11 @@ do_install() {
     install -d ${D}${sbindir}
     install -m 0755 ${UNPACKDIR}/amlogic-media-sysfs ${D}${sbindir}/amlogic-media-sysfs
 
-    install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${UNPACKDIR}/amlogic-media-sysfs.service ${D}${systemd_system_unitdir}/
+    install -d ${D}${sysconfdir}/init.d
+    install -m 0755 ${UNPACKDIR}/aml-modules-load.init ${D}${sysconfdir}/init.d/aml-modules-load
 }
 
-SYSTEMD_SERVICE:${PN} = "amlogic-media-sysfs.service"
-
-FILES:${PN} = "${sysconfdir}/modules-load.d ${sbindir}/amlogic-media-sysfs ${systemd_system_unitdir}/amlogic-media-sysfs.service"
+FILES:${PN} = "${sysconfdir}/modules-load.d ${sbindir}/amlogic-media-sysfs ${sysconfdir}/init.d/aml-modules-load"
 
 RDEPENDS:${PN} += " \
     kernel-module-amvdec-ports \

@@ -5,12 +5,16 @@ LICENSE = "CLOSED"
 COMPATIBLE_MACHINE = "odroid-c5"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
-SRC_URI = "file://aml-optee.tar.gz"
+SRC_URI = " \
+    file://aml-optee.tar.gz \
+    file://tee-supplicant.init \
+"
 S = "${UNPACKDIR}"
 
-inherit systemd
+inherit update-rc.d
 
-SYSTEMD_SERVICE:${PN} = "tee-supplicant.service"
+INITSCRIPT_NAME = "tee-supplicant"
+INITSCRIPT_PARAMS = "start 08 S . stop 20 0 1 6 ."
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
@@ -25,8 +29,8 @@ do_install() {
     install -d ${D}${libdir}
     cp -a --no-preserve=ownership ${UNPACKDIR}/lib/. ${D}${libdir}/
 
-    install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${UNPACKDIR}/tee-supplicant.service ${D}${systemd_system_unitdir}/
+    install -d ${D}${sysconfdir}/init.d
+    install -m 0755 ${UNPACKDIR}/tee-supplicant.init ${D}${sysconfdir}/init.d/tee-supplicant
 }
 
 FILES:${PN} += "${bindir}/tee-supplicant ${libdir}/lib*"

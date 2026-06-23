@@ -1,0 +1,31 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          aml-modules-load
+# Required-Start:    $local_fs udev
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Load Amlogic codec modules and apply the media sysfs settings
+### END INIT INFO
+
+case "$1" in
+	start)
+		for f in /etc/modules-load.d/multimedia-amlogic.conf \
+			 /etc/modules-load.d/sound-amlogic.conf; do
+			[ -f "$f" ] || continue
+			while read -r m; do
+				case "$m" in ''|\#*) continue ;; esac
+				modprobe "$m" 2>/dev/null
+			done < "$f"
+		done
+
+		[ -x /usr/sbin/amlogic-media-sysfs ] && /usr/sbin/amlogic-media-sysfs
+		;;
+	stop|restart|reload)
+		;;
+	*)
+		echo "Usage: $0 {start|stop}"
+		exit 1
+		;;
+esac
+exit 0
