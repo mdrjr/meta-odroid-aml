@@ -70,6 +70,3 @@ fi
 
 su -c "XDG_RUNTIME_DIR=/run/user/`id -u ${WESTON_USER}` weston $weston_args --log=/tmp/weston.log" $WESTON_USER &
 
-if test -f /usr/bin/chromium-autostart; then
-	/usr/bin/chromium-autostart $WESTON_USER
-fi
