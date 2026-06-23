@@ -15,6 +15,7 @@ KERNEL=="mediasync", GROUP="video", MODE="660"
 KERNEL=="amresource_mgr", GROUP="video", MODE="660"
 KERNEL=="tee0", GROUP="video", MODE="660"
 KERNEL=="secmem", GROUP="video", MODE="660"
+KERNEL=="uvm", GROUP="video", MODE="660"
 
 ACTION=="add", SUBSYSTEM=="dma_heap", ENV{DEVNAME}=="/dev/dma_heap/linux,cma", GROUP="video", MODE="0660"
 ACTION=="add", SUBSYSTEM=="dma_heap", ENV{DEVNAME}=="/dev/dma_heap/system-uncached", GROUP="video", MODE="0660"
