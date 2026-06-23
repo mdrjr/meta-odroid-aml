@@ -17,6 +17,7 @@ SRC_URI:append:odroid-c5 = " \
     file://0003-ODROID-C5-Fix-Screen-Glitches-in-Fullscreen-Mode-on-.patch \
     file://0004-ODROID-C5-Fix-YouTube-Video-Looping.patch \
     file://0005-ODROID-C5-force-legacy-v4l2-decoder-selection.patch \
+    file://0006-ODROID-C5-fix-playback-hangs-poll-timeout.patch \
 "
 
 PACKAGECONFIG ??= "use-egl use-v4l2 use-linux-v4l2 proprietary-codecs"
