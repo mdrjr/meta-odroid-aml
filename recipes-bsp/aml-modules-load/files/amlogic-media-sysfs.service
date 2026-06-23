@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply Amlogic media sysfs settings (ODROID-C5 HW video decode)
+After=systemd-modules-load.service
+Wants=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/amlogic-media-sysfs
+
+[Install]
+WantedBy=multi-user.target

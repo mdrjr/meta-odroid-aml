@@ -1,0 +1,19 @@
+#!/bin/sh
+
+[ -d /sys/module/amvdec_ports/parameters ] || modprobe amvdec_ports 2>/dev/null
+
+w() { [ -e "$1" ] && printf '%s' "$2" > "$1" 2>/dev/null; }
+
+w /sys/module/amvdec_ports/parameters/multiplanar 1
+w /sys/module/amvdec_ports/parameters/bypass_vpp 1
+w /sys/module/amvdec_ports/parameters/enable_drm_mode 0
+w /sys/module/amvdec_ports/parameters/av1_need_prefix 1
+w /sys/module/amvdec_ports/parameters/vp9_need_prefix 1
+w /sys/module/aml_drm/parameters/video_axis_zoom 1
+
+if [ -e /sys/kernel/debug/dri/0/vpu/debug ]; then
+	printf 'ow 0' > /sys/kernel/debug/dri/0/vpu/debug 2>/dev/null
+	printf 'wv 0x3d80 0x52000005' > /sys/kernel/debug/dri/0/vpu/debug 2>/dev/null
+fi
+
+exit 0

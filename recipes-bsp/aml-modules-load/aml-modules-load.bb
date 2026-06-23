@@ -1,6 +1,5 @@
-SUMMARY = "Amlogic multimedia kernel module autoload (ODROID-C5)"
-DESCRIPTION = "Boot-time autoload config for the Amlogic VDEC/encoder and sound \
-codec backend modules."
+SUMMARY = "Amlogic multimedia module autoload + sysfs setup (ODROID-C5)"
+DESCRIPTION = "Boot-time autoload of the Amlogic VDEC / sysfs setup"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
@@ -10,23 +9,33 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 SRC_URI = " \
     file://multimedia-amlogic.conf \
     file://sound-amlogic.conf \
-    file://amvdec_ports.conf \
+    file://amlogic-media-sysfs \
+    file://amlogic-media-sysfs.service \
 "
 
 S = "${UNPACKDIR}"
+
+inherit systemd
 
 do_install() {
     install -d ${D}${sysconfdir}/modules-load.d
     install -m 0644 ${UNPACKDIR}/multimedia-amlogic.conf ${D}${sysconfdir}/modules-load.d/
     install -m 0644 ${UNPACKDIR}/sound-amlogic.conf ${D}${sysconfdir}/modules-load.d/
-    install -d ${D}${sysconfdir}/modprobe.d
-    install -m 0644 ${UNPACKDIR}/amvdec_ports.conf ${D}${sysconfdir}/modprobe.d/
+
+    install -d ${D}${sbindir}
+    install -m 0755 ${UNPACKDIR}/amlogic-media-sysfs ${D}${sbindir}/amlogic-media-sysfs
+
+    install -d ${D}${systemd_system_unitdir}
+    install -m 0644 ${UNPACKDIR}/amlogic-media-sysfs.service ${D}${systemd_system_unitdir}/
 }
 
-FILES:${PN} = "${sysconfdir}/modules-load.d ${sysconfdir}/modprobe.d"
+SYSTEMD_SERVICE:${PN} = "amlogic-media-sysfs.service"
+
+FILES:${PN} = "${sysconfdir}/modules-load.d ${sbindir}/amlogic-media-sysfs ${systemd_system_unitdir}/amlogic-media-sysfs.service"
 
 RDEPENDS:${PN} += " \
-    kernel-module-amlogic-dvb-demux \
+    kernel-module-amvdec-ports \
+    kernel-module-encoder \
     kernel-module-encoder-common \
     kernel-module-decoder-common \
     kernel-module-media-sync \
