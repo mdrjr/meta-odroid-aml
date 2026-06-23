@@ -1,12 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 
-WESTON_USER=$1
-NTP="1"
+GATE_INTERNET="1"
+NTP="0"
 NTP_SERVER="time.google.com"
 URL="http://claro.mdrjr.me/video/index.html"
 
 if test -e /boot/autostart.cfg; then
     . /boot/autostart.cfg
+fi
+
+if [ "$GATE_INTERNET" -eq "1" ]; then
+        while [ -z "$(/sbin/ip -4 route show default 2>/dev/null)" ]; do sleep 1; echo .; done
 fi
 
 if [ "$NTP" -eq "1" ]; then
