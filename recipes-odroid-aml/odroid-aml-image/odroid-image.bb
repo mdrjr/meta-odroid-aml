@@ -3,11 +3,13 @@ inherit deploy
 inherit core-image
 
 IMAGE_FEATURES:append = " package-management serial-autologin-root ssh-server-openssh weston"
-DEPENDS:append:odroid-c5 = " u-boot-odroid-c5 odroid-autostart-cfg"
+DEPENDS:append:odroid-c5 = " u-boot-odroid-c5"
 DEPENDS:append:odroid-c4 = " u-boot-odroid-c4"
 DEPENDS:append:odroid-n2 = " u-boot-odroid-n2"
 DEPENDS:append:odroid-n2plus = " u-boot-odroid-n2"
 DEPENDS:append:odroid-n2l = " u-boot-odroid-n2"
+DEPENDS:append = " odroid-autostart-cfg"
+do_image_wic[depends] += "odroid-autostart-cfg:do_deploy"
 IMAGE_INSTALL:append = " odroid-autostart-script weston-init"
 
 DISPLAY_PLATFORM ?= "wayland"
