@@ -1,0 +1,26 @@
+#!/bin/sh
+
+test -e /etc/default/weston && . /etc/default/weston
+WESTON_USER=${WESTON_USER:-weston}
+XDG_RUNTIME_DIR=/run/user/$(id -u $WESTON_USER)
+
+case "$1" in
+  start)
+	mkdir -p $XDG_RUNTIME_DIR
+	chmod 0700 $XDG_RUNTIME_DIR
+	chown $WESTON_USER:$(id -gn $WESTON_USER) $XDG_RUNTIME_DIR
+	su -c "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR pulseaudio --start --exit-idle-time=-1" $WESTON_USER
+	;;
+  stop)
+	su -c "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR pulseaudio --kill" $WESTON_USER
+	;;
+  restart)
+	$0 stop
+	sleep 1
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+	;;
+esac
