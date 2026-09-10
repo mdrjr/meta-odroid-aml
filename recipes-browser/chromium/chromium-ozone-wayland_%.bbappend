@@ -38,7 +38,7 @@ CHROMIUM_EXTRA_ARGS:append = " --no-sandbox --gpu-sandbox-start-early --ignore-g
 
 CHROMIUM_EXTRA_ARGS:append = " --enable-features=AcceleratedVideoEncoder,AcceleratedVideoDecoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL"
 
-CHROMIUM_EXTRA_ARGS:append = " --enable-wayland-ime"
+CHROMIUM_EXTRA_ARGS:append = " --enable-wayland-ime --wayland-text-input-version=1"
 
 python() {
     if d.getVar('MACHINE') in ('odroid-c4', 'odroid-n2', 'odroid-n2plus', 'odroid-n2l'):
