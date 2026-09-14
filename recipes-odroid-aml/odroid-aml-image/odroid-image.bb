@@ -24,6 +24,7 @@ IMAGE_INSTALL:append:odroid-c4 = " odroid-c4-audio-routing"
 IMAGE_INSTALL:append:odroid-n2 = " odroid-n2-audio-routing"
 IMAGE_INSTALL:append:odroid-n2plus = " odroid-n2-audio-routing"
 IMAGE_INSTALL:append:odroid-n2l = " odroid-n2-audio-routing"
+IMAGE_INSTALL:append:odroid-c5 = " odroid-c5-audio-routing"
 
 # Chromium
 IMAGE_INSTALL:append:odroid-c4 = " chromium-ozone-wayland"
