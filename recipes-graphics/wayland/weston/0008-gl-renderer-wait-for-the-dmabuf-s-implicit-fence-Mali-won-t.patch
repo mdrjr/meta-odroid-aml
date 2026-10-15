@@ -1,0 +1,80 @@
+From: Mauro Ribeiro <mdrjr0@gmail.com>
+Subject: [PATCH] gl-renderer: wait for the dmabuf's implicit fence, Mali won't
+
+---
+--- a/libweston/renderer-gl/gl-renderer.c
++++ b/libweston/renderer-gl/gl-renderer.c
+@@ -28,6 +28,8 @@
+ #include "config.h"
+ 
+ #include <fcntl.h>
++#include <sys/ioctl.h>
++#include <linux/dma-buf.h>
+ #include <stdbool.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+@@ -1698,6 +1700,55 @@
+ }
+ 
+ static int
++wait_implicit_fence(struct gl_renderer *gr, struct weston_buffer *buffer)
++{
++	static bool unsupported;
++	struct linux_dmabuf_buffer *dmabuf;
++	int i, j;
++
++	if (unsupported)
++		return 0;
++	if (buffer->type != WESTON_BUFFER_DMABUF || !buffer->dmabuf)
++		return 0;
++	if (!gl_features_has(gr, FEATURE_EXPLICIT_SYNC))
++		return 0;
++
++	dmabuf = buffer->dmabuf;
++	for (i = 0; i < dmabuf->attributes.n_planes; i++) {
++		struct dma_buf_export_sync_file req = {
++			.flags = DMA_BUF_SYNC_READ,
++			.fd = -1,
++		};
++		EGLint attribs[] = {
++			EGL_SYNC_NATIVE_FENCE_FD_ANDROID, -1, EGL_NONE
++		};
++		EGLSyncKHR sync;
++
++		for (j = 0; j < i; j++)
++			if (dmabuf->attributes.fd[j] == dmabuf->attributes.fd[i])
++				break;
++		if (j < i)
++			continue;
++		if (ioctl(dmabuf->attributes.fd[i],
++			  DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &req) < 0) {
++			if (errno == ENOTTY)
++				unsupported = true;
++			return 0;
++		}
++		attribs[1] = req.fd;
++		sync = gr->create_sync(gr->egl_display,
++				       EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
++		if (sync == EGL_NO_SYNC_KHR) {
++			close(req.fd);
++			return 0;
++		}
++		gr->wait_sync(gr->egl_display, sync, 0);
++		gr->destroy_sync(gr->egl_display, sync);
++	}
++	return 0;
++}
++
++static int
+ ensure_surface_buffer_is_ready(struct gl_renderer *gr,
+ 			       struct gl_surface_state *gs,
+ 			       struct weston_paint_node *pnode)
+@@ -1717,7 +1768,7 @@
+ 		return 0;
+ 
+ 	if (surface->acquire_fence_fd < 0)
+-		return 0;
++		return wait_implicit_fence(gr, buffer);
+ 
+ 	/* We should only get a fence if we support EGLSyncKHR, since
+ 	 * we don't advertise the explicit sync protocol otherwise. */
